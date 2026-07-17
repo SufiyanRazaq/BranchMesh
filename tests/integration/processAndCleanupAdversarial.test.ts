@@ -7,7 +7,13 @@ import { runScan } from "../../src/engine/runScan.js";
 import { isAbortError } from "../../src/model/errors.js";
 import { installRootCancellation, type SignalSource } from "../../src/utils/signals.js";
 import { TemporaryGitRepository } from "../helpers/TemporaryGitRepository.js";
-import { listExecutionRoots, pathExists, scanConfig, waitFor } from "../helpers/scanTestSupport.js";
+import {
+  listExecutionRoots,
+  listReportStagesForOutput,
+  pathExists,
+  scanConfig,
+  waitFor,
+} from "../helpers/scanTestSupport.js";
 
 const branches = ["feature/a", "feature/b"] as const;
 
@@ -54,6 +60,7 @@ describe("adversarial process and cleanup behavior", () => {
       expect(await repository.captureState()).toEqual(stateBefore);
       expect(await repository.listWorktrees()).toEqual([path.resolve(repository.repositoryPath)]);
       expect(await listExecutionRoots()).toEqual(rootsBefore);
+      expect(await listReportStagesForOutput(repository.outputDirectory)).toEqual([]);
     } finally {
       cancellation.dispose();
       expect(source.listenerCount("SIGINT")).toBe(0);
@@ -99,6 +106,7 @@ describe("adversarial process and cleanup behavior", () => {
       expect(await repository.captureState()).toEqual(stateBefore);
       expect(await repository.listWorktrees()).toEqual([path.resolve(repository.repositoryPath)]);
       expect(await listExecutionRoots()).toEqual(rootsBefore);
+      expect(await listReportStagesForOutput(repository.outputDirectory)).toEqual([]);
       expect(await pathExists(outcome.executionRoot)).toBe(false);
 
       await new Promise<void>((resolve) => {
@@ -134,6 +142,7 @@ describe("adversarial process and cleanup behavior", () => {
       expect(await repository.captureState()).toEqual(stateBefore);
       expect(await repository.listWorktrees()).toEqual([path.resolve(repository.repositoryPath)]);
       expect(await listExecutionRoots()).toEqual(rootsBefore);
+      expect(await listReportStagesForOutput(repository.outputDirectory)).toEqual([]);
     } finally {
       await repository.cleanup();
     }

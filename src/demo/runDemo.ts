@@ -2,7 +2,7 @@ import { access } from "node:fs/promises";
 import path from "node:path";
 
 import { parseScanConfig } from "../config/schema.js";
-import { runScan, type ScanOutcome } from "../engine/runScan.js";
+import { runScan, type ScanOutcome, type ScanProgressEvent } from "../engine/runScan.js";
 import { assertGitSuccess, GitClient } from "../git/GitClient.js";
 import { parseWorktreePorcelainZ } from "../git/WorktreeParser.js";
 import { createDemoRepository } from "./createDemoRepository.js";
@@ -11,6 +11,7 @@ export interface DemoOptions {
   readonly toolVersion: string;
   readonly outputDirectory?: string | undefined;
   readonly signal?: AbortSignal | undefined;
+  readonly onProgress?: ((event: ScanProgressEvent) => void) | undefined;
 }
 
 export interface DemoOutcome {
@@ -50,6 +51,7 @@ export async function runDemo(options: DemoOptions): Promise<DemoOutcome> {
         ? {}
         : { outputDirectory: options.outputDirectory }),
       ...(options.signal === undefined ? {} : { signal: options.signal }),
+      ...(options.onProgress === undefined ? {} : { onProgress: options.onProgress }),
     });
     const stateAfter = await captureRepositoryState(git, demo.root, demo.repositoryPath);
 

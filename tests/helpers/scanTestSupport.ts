@@ -1,5 +1,6 @@
-import { access, readdir } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import os from "node:os";
+import path from "node:path";
 
 import type { ScanConfig } from "../../src/config/schema.js";
 import type { ValidationCommand } from "../../src/config/schema.js";
@@ -41,6 +42,29 @@ export async function listExecutionRoots(): Promise<string[]> {
   return (await readdir(os.tmpdir()))
     .filter((entry) => entry.startsWith("branchmesh-run-"))
     .sort(compareText);
+}
+
+export async function listReportStagesForOutput(outputDirectory: string): Promise<string[]> {
+  const matching: string[] = [];
+  for (const entry of await readdir(os.tmpdir())) {
+    if (!entry.startsWith("branchmesh-report-stage-")) {
+      continue;
+    }
+    const stageRoot = path.join(os.tmpdir(), entry);
+    try {
+      const marker = JSON.parse(
+        await readFile(path.join(stageRoot, ".branchmesh-report-stage.json"), "utf8"),
+      ) as { outputDirectory?: unknown };
+      if (marker.outputDirectory === path.resolve(outputDirectory)) {
+        matching.push(stageRoot);
+      }
+    } catch (error: unknown) {
+      if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) {
+        throw error;
+      }
+    }
+  }
+  return matching.sort(compareText);
 }
 
 export async function pathExists(candidate: string): Promise<boolean> {

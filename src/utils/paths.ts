@@ -35,17 +35,33 @@ export function resolveRunOutputDirectory(
   runId: string,
   explicitOutput: string | undefined,
 ): string {
+  return resolveReportDirectories(commonGitDirectory, runId, explicitOutput).runDirectory;
+}
+
+export interface ReportDirectories {
+  readonly runDirectory: string;
+  readonly latestDirectory: string | null;
+}
+
+export function resolveReportDirectories(
+  commonGitDirectory: string,
+  runId: string,
+  explicitOutput: string | undefined,
+  dataRoot = resolveUserDataRoot(),
+): ReportDirectories {
   if (explicitOutput !== undefined) {
-    return path.resolve(explicitOutput);
+    return { runDirectory: path.resolve(explicitOutput), latestDirectory: null };
   }
 
-  return path.join(
-    resolveUserDataRoot(),
+  const repositoryDirectory = path.join(
+    dataRoot,
     "repositories",
     createRepositoryFingerprint(commonGitDirectory),
-    "runs",
-    runId,
   );
+  return {
+    runDirectory: path.join(repositoryDirectory, "runs", runId),
+    latestDirectory: path.join(repositoryDirectory, "latest"),
+  };
 }
 
 export async function resolveSafeOutputDirectory(

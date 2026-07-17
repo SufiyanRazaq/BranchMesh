@@ -182,7 +182,7 @@ Repository actions:
 
 ## 2026-07-17 — Milestone 3 adversarial safety gate
 
-- **Status:** Implemented and locally verified; awaiting human acceptance.
+- **Status:** Complete and approved; committed as `d30f153`.
 - **Scope:** Real temporary Git fixtures and adversarial Git, process-tree, ownership, state
   preservation, and cleanup testing. No product-output or CLI feature work was added.
 
@@ -248,5 +248,100 @@ Remaining work and risks:
 
 Repository actions:
 
+- The approved milestone was committed as `d30f153` with message
+  `test: add adversarial Git safety coverage`.
+- No push, publication, tag, or release was performed.
+
+## 2026-07-17 — Milestone 4 terminal and offline reports
+
+- **Status:** Implemented and locally verified; awaiting human acceptance.
+- **Scope:** Terminal progress and summary, external persistent report storage, bounded separate
+  logs, validated redaction, and one self-contained offline HTML report. No new CLI command or
+  scanning feature was added.
+
+Codex work:
+
+- Confirmed a clean working tree at accepted Milestone 3 commit `d30f153` and reread all
+  authoritative safety, architecture, product, and decision documents before editing.
+- Added structured progress events around the existing deterministic job path without changing
+  scheduling, pair eligibility, classifications, exit precedence, or stored job order.
+- Added terminal output with base and individual status, a text-coded compatibility matrix, pair
+  details, counts, classifications, and JSON/HTML/log locations. Color remains supplementary.
+- Added repository-fingerprint/run-ID storage and default `latest/` copies outside the scanned
+  repository. Explicit output continues to select the exact external run directory.
+- Extended command capture with separate 5 MB bounded streams. Scan-time evidence is staged under
+  an ownership-marked `os.tmpdir()` root and removed in the scan-level `finally` path.
+- Added atomic per-file report publication, redacted and Zod-validated JSON, run-relative log
+  paths, and ANSI-stripped/redacted raw evidence. Repository roots and selected worktree paths are
+  removed from persisted JSON.
+- Added a stricter report projection that omits repository and worktree path fields. Only this
+  validated projection is serialized into HTML, with script-context escaping for `<`, `>`, `&`,
+  U+2028, and U+2029.
+- Added a dependency-free HTML renderer with summary cards, accessible native-button matrix,
+  branch and pair evidence, expandable commands, stdout/stderr, durations, exit status,
+  reproduction information, full SHAs, limitations, responsive styles, and print styles. Its CSP
+  prohibits connections, external fonts, images, frames, media, and object loads.
+- Updated the real demo harness to validate the HTML report and all 14 log files while preserving
+  the expected scan exit `1` and harness exit `0`.
+
+Confirmed defects and regressions:
+
+- A regression test first showed that a valid, unbounded command ID was copied into a log filename
+  and could exceed filesystem limits.
+- Log filenames now retain IDs up to 64 characters and otherwise use a bounded 48-character prefix
+  plus a stable 16-hex digest. The result contract and configured command ID remain unchanged.
+- A real filesystem regression injected a foreign sentinel after BranchMesh created a new report
+  directory and proved that recursive rollback removed it when later publication failed.
+- Publication rollback now tracks its exact linked files, removes only those paths, and uses
+  non-recursive empty-directory removal. Concurrent foreign files and non-empty directories are
+  preserved.
+- The demo harness initially compared macOS `/var` with its canonical `/private/var` target. The
+  assertion now compares canonical output paths; no production path behavior was changed.
+
+Safety and output evidence:
+
+- Persistent output is rechecked against the repository root, common Git directory, and every
+  discovered worktree. Default and latest directories are both subject to the containment check.
+- Report staging has a per-run token and output identity marker, lives below `os.tmpdir()`, and is
+  verified before removal. Cancellation, timeout, success, and publication-refusal tests confirm
+  no matching stage remains.
+- Output directory symlinks and non-directories are rejected. Publication never overwrites an
+  existing run result, HTML file, or logs directory, and rollback deletes only artifacts created
+  by that publication attempt.
+- Hostile branch and log strings are HTML-escaped; embedded JSON prevents script termination;
+  ANSI CSI/OSC controls are stripped; environment values, repository roots, execution roots, and
+  selected worktree paths do not appear in published integration-test artifacts.
+- The report uses no external asset, CDN, web font, analytics, framework, fetch call, or runtime
+  request. It uses “No detected conflict” and contains no absolute safety claim.
+
+Verification:
+
+- `npm run format:check` — passed.
+- `npm run lint` — passed with zero warnings.
+- `npm run typecheck` — passed under strict TypeScript.
+- Targeted report, publication, process cleanup, and demo tests — passed after the three regression
+  corrections above.
+- `npm test` — passed, 87 tests across 24 files.
+- `npm run build` — passed, including declaration generation.
+- `npm run demo:verify` — passed; observed scan exit `1`, three `BRANCH_PASS` jobs, one
+  `BEHAVIORAL_CONFLICT` with `PAIR_TEST_FAILURE`, two `NO_DETECTED_CONFLICT` pairs, validated
+  offline HTML, 14 log files, unchanged repository state, and zero temporary worktrees.
+- `npm run verify` — passed end to end with the final 87-test suite, build, and demo verifier.
+- A real default-path demo run produced the persistent fingerprint/run bundle and expected scan
+  exit `1`; both `latest` files match their run artifacts byte-for-byte.
+
+Remaining work and risks:
+
+- Automated tests validate offline content, CSP, escaping, keyboard-native controls, responsive
+  and print CSS, but manual browser, screen-reader, and printed-page review remains useful before
+  release.
+- Latest JSON and HTML are replaced atomically as individual files; simultaneous readers between
+  the two replacements could briefly observe different run generations.
+- This session ran on macOS. Linux and WSL remain supported by design but need their release-matrix
+  executions; native Windows remains intentionally unsupported.
+- Full `scan`, `init`, `doctor`, `clean`, and other CLI surfaces remain Milestone 5.
+
+Repository actions:
+
 - No commit, push, publication, tag, or release was performed.
-- Milestone 4 was not started.
+- Milestone 5 was not started.

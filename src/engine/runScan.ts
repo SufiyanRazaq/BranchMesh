@@ -7,13 +7,16 @@ import {
   RunResultSchema,
   type BranchSnapshot,
   type JobResult,
+  type PrimaryClassification,
   type RunResult,
 } from "../model/results.js";
-import { writeValidatedResult } from "../report/writeResult.js";
+import { ReportPublisher } from "../report/ReportPublisher.js";
 import {
+  createRepositoryFingerprint,
   createRunId,
-  resolveRunOutputDirectory,
+  resolveReportDirectories,
   resolveSafeOutputDirectory,
+  type ReportDirectories,
 } from "../utils/paths.js";
 import { mapLimitOrdered } from "../utils/mapLimitOrdered.js";
 import { CommandRunner, type PipelineCommand } from "./CommandRunner.js";
@@ -33,13 +36,45 @@ export interface ScanOptions {
   readonly toolVersion: string;
   readonly outputDirectory?: string | undefined;
   readonly signal?: AbortSignal | undefined;
+  readonly onProgress?: ((event: ScanProgressEvent) => void) | undefined;
 }
 
 export interface ScanOutcome {
   readonly result: RunResult;
   readonly resultPath: string;
+  readonly htmlPath: string;
+  readonly logsDirectory: string;
   readonly executionRoot: string;
 }
+
+export type ScanProgressEvent =
+  | {
+      readonly type: "scan-started";
+      readonly repositoryFingerprint: string;
+      readonly baseRef: string;
+      readonly branchRefs: readonly string[];
+    }
+  | {
+      readonly type: "job-started";
+      readonly id: string;
+      readonly kind: "base" | "branch" | "pair";
+      readonly branchRefs: readonly string[];
+    }
+  | {
+      readonly type: "job-completed";
+      readonly id: string;
+      readonly kind: "base" | "branch" | "pair";
+      readonly branchRefs: readonly string[];
+      readonly classification: PrimaryClassification;
+      readonly durationMs: number;
+    }
+  | { readonly type: "report-publishing"; readonly outputDirectory: string }
+  | {
+      readonly type: "report-published";
+      readonly resultPath: string;
+      readonly htmlPath: string;
+      readonly logsDirectory: string;
+    };
 
 interface JobExecutionContext {
   readonly snapshot: RepositorySnapshot;
@@ -48,7 +83,9 @@ interface JobExecutionContext {
   readonly worktrees: WorktreeManager;
   readonly mergeRunner: MergeRunner;
   readonly commandRunner: CommandRunner;
+  readonly reportPublisher: ReportPublisher;
   readonly signal: AbortSignal;
+  readonly onProgress: ((event: ScanProgressEvent) => void) | undefined;
 }
 
 export async function runScan(options: ScanOptions): Promise<ScanOutcome> {
@@ -56,20 +93,31 @@ export async function runScan(options: ScanOptions): Promise<ScanOutcome> {
   const startedAt = new Date(startedAtMs).toISOString();
   const config = parseScanConfig(options.config);
   const cancellation = createScanCancellation(options.signal);
+  let reportPublisher: ReportPublisher | undefined;
 
   try {
     const git = new GitClient();
     const inspector = new RepositoryInspector(git);
     const snapshot = await inspector.preflight(options.repositoryPath, config, cancellation.signal);
     const runId = createRunId();
-    const outputDirectory = await resolveScanOutputDirectory(
+    emitProgress(options.onProgress, {
+      type: "scan-started",
+      repositoryFingerprint: createRepositoryFingerprint(snapshot.repository.commonGitDirectory),
+      baseRef: snapshot.base.ref,
+      branchRefs: snapshot.branches.map((branch) => branch.ref),
+    });
+    const reportDirectories = await resolveScanReportDirectories(
       snapshot,
-      resolveRunOutputDirectory(
+      resolveReportDirectories(
         snapshot.repository.commonGitDirectory,
         runId,
         options.outputDirectory,
       ),
     );
+    reportPublisher = await ReportPublisher.create({
+      outputDirectory: reportDirectories.runDirectory,
+      latestDirectory: reportDirectories.latestDirectory,
+    });
     const ownership = await ExecutionOwnership.create({
       runId,
       repository: snapshot.repository,
@@ -78,6 +126,7 @@ export async function runScan(options: ScanOptions): Promise<ScanOutcome> {
     });
     const worktrees = new WorktreeManager(git, snapshot.repository, ownership, cancellation.signal);
     const executionRoot = worktrees.executionRoot;
+    reportPublisher.addSensitiveValue(executionRoot);
     const context: JobExecutionContext = {
       snapshot,
       commands: createPipeline(config),
@@ -85,12 +134,14 @@ export async function runScan(options: ScanOptions): Promise<ScanOutcome> {
       worktrees,
       mergeRunner: new MergeRunner(git, ownership, cancellation.signal),
       commandRunner: new CommandRunner(),
+      reportPublisher,
       signal: cancellation.signal,
+      onProgress: options.onProgress,
     };
 
     let result: RunResult | undefined;
     try {
-      const baseJob = await executeJob(context, "base", "base", []);
+      const baseJob = await executeJobWithProgress(context, "base", "base", []);
       let jobs: JobResult[] = [baseJob];
 
       if (baseJob.classification === "BASE_PASS") {
@@ -103,7 +154,12 @@ export async function runScan(options: ScanOptions): Promise<ScanOutcome> {
           plan.branches,
           config.execution.concurrency,
           async (branchPlan) =>
-            await executeJob(context, branchPlan.id, branchPlan.kind, branchPlan.branches),
+            await executeJobWithProgress(
+              context,
+              branchPlan.id,
+              branchPlan.kind,
+              branchPlan.branches,
+            ),
           schedulingOptions,
         );
 
@@ -113,9 +169,17 @@ export async function runScan(options: ScanOptions): Promise<ScanOutcome> {
           async (pairPlan) => {
             const leftPassed = branchJobs[pairPlan.leftIndex]?.classification === "BRANCH_PASS";
             const rightPassed = branchJobs[pairPlan.rightIndex]?.classification === "BRANCH_PASS";
-            return leftPassed && rightPassed
-              ? await executeJob(context, pairPlan.id, pairPlan.kind, pairPlan.branches)
-              : createSkippedPairJob(snapshot.base.sha, pairPlan);
+            if (leftPassed && rightPassed) {
+              return await executeJobWithProgress(
+                context,
+                pairPlan.id,
+                pairPlan.kind,
+                pairPlan.branches,
+              );
+            }
+            const skipped = createSkippedPairJob(snapshot.base.sha, pairPlan);
+            emitJobCompleted(context.onProgress, skipped);
+            return skipped;
           },
           schedulingOptions,
         );
@@ -144,31 +208,72 @@ export async function runScan(options: ScanOptions): Promise<ScanOutcome> {
       throw createAbortError();
     }
 
-    // The writer validates the complete contract again immediately before atomic publication.
-    const resultPath = await writeValidatedResult(result, outputDirectory);
+    emitProgress(options.onProgress, {
+      type: "report-publishing",
+      outputDirectory: reportDirectories.runDirectory,
+    });
+    // The publisher validates both contracts again immediately before atomic publication.
+    const published = await reportPublisher.publish(result);
     if (cancellation.signal.aborted) {
       throw createAbortError();
     }
-    return { result, resultPath, executionRoot };
+    emitProgress(options.onProgress, {
+      type: "report-published",
+      resultPath: published.resultPath,
+      htmlPath: published.htmlPath,
+      logsDirectory: published.logsDirectory,
+    });
+    return {
+      result: published.result,
+      resultPath: published.resultPath,
+      htmlPath: published.htmlPath,
+      logsDirectory: published.logsDirectory,
+      executionRoot,
+    };
   } finally {
-    cancellation.dispose();
+    try {
+      await reportPublisher?.dispose();
+    } finally {
+      cancellation.dispose();
+    }
   }
 }
 
-async function resolveScanOutputDirectory(
+async function resolveScanReportDirectories(
   snapshot: RepositorySnapshot,
-  outputDirectory: string,
-): Promise<string> {
-  let safeOutput = outputDirectory;
+  directories: ReportDirectories,
+): Promise<ReportDirectories> {
+  let runDirectory = directories.runDirectory;
+  let latestDirectory = directories.latestDirectory;
   const forbiddenRoots = new Set([
     snapshot.repository.root,
     snapshot.repository.commonGitDirectory,
     ...snapshot.worktrees.filter((worktree) => !worktree.prunable).map((worktree) => worktree.path),
   ]);
   for (const forbiddenRoot of forbiddenRoots) {
-    safeOutput = await resolveSafeOutputDirectory(forbiddenRoot, safeOutput);
+    runDirectory = await resolveSafeOutputDirectory(forbiddenRoot, runDirectory);
+    if (latestDirectory !== null) {
+      latestDirectory = await resolveSafeOutputDirectory(forbiddenRoot, latestDirectory);
+    }
   }
-  return safeOutput;
+  return { runDirectory, latestDirectory };
+}
+
+async function executeJobWithProgress(
+  context: JobExecutionContext,
+  id: string,
+  kind: "base" | "branch" | "pair",
+  branches: readonly BranchSnapshot[],
+): Promise<JobResult> {
+  emitProgress(context.onProgress, {
+    type: "job-started",
+    id,
+    kind,
+    branchRefs: branches.map((branch) => branch.ref),
+  });
+  const result = await executeJob(context, id, kind, branches);
+  emitJobCompleted(context.onProgress, result);
+  return result;
 }
 
 async function executeJob(
@@ -205,6 +310,7 @@ async function executeJob(
         signal: context.signal,
         maximumLogBytes: context.maximumLogBytes,
       });
+      await context.reportPublisher.stageCommandLogs(id, commands.length, command.id, execution);
       commands.push(execution.result);
       if (execution.result.status !== "passed") {
         break;
@@ -263,6 +369,27 @@ async function executeJob(
   } finally {
     await context.worktrees.cleanup(id);
   }
+}
+
+function emitJobCompleted(
+  onProgress: ((event: ScanProgressEvent) => void) | undefined,
+  job: JobResult,
+): void {
+  emitProgress(onProgress, {
+    type: "job-completed",
+    id: job.id,
+    kind: job.kind,
+    branchRefs: job.branchRefs,
+    classification: job.classification,
+    durationMs: job.durationMs,
+  });
+}
+
+function emitProgress(
+  onProgress: ((event: ScanProgressEvent) => void) | undefined,
+  event: ScanProgressEvent,
+): void {
+  onProgress?.(event);
 }
 
 interface CreateJobResultOptions {

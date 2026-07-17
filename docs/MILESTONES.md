@@ -95,7 +95,7 @@ Milestone boundary:
 - The accepted implementation was committed as `c5cd4e6` with message
   `feat: add deterministic branch scanning engine`.
 
-## Milestone 3 — Implemented; acceptance pending: Safety and correctness gate
+## Milestone 3 — Complete: Safety and correctness gate
 
 Deliverables:
 
@@ -109,7 +109,7 @@ Acceptance gate:
 - No BranchMesh worktree, child process, lock, or recoverable Git metadata remains after success or
   failure.
 
-Implementation evidence on 2026-07-17:
+Completed and accepted on 2026-07-17. Implementation evidence:
 
 - Added an ownership-marked temporary repository helper. Every adversarial test creates a fresh
   real Git repository beneath `os.tmpdir()` and deletes only its verified fixture root.
@@ -128,16 +128,16 @@ Implementation evidence on 2026-07-17:
   idempotent cleanup, and the absence of orphaned worktrees or administrative records.
 - A regression first demonstrated that ownership marker and manifest symlinks were accepted. The
   ownership reader now requires regular files and opens them with `O_NOFOLLOW` before any cleanup.
-- Two consecutive complete Vitest runs passed with 75 tests across 20 files. Final milestone
-  verification remains subject to the acceptance review.
+- Two consecutive complete Vitest runs passed with 75 tests across 20 files.
 
 Milestone boundary:
 
 - No report UI, new CLI commands, Codex skill, caching, or other product-output functionality was
   added.
-- Milestone 4 has not started, and Milestone 3 has not been committed.
+- The accepted implementation was committed as `d30f153` with message
+  `test: add adversarial Git safety coverage`.
 
-## Milestone 4 — Not started: Product output
+## Milestone 4 — Implemented; acceptance pending: Product output
 
 Deliverables:
 
@@ -149,6 +149,47 @@ Acceptance gate:
 
 - A new user can understand the hidden conflict without reading raw logs.
 - The report remains functional with networking disabled and uses no external assets.
+
+Implementation evidence on 2026-07-17:
+
+- Added structured scan progress events and a Picocolors terminal renderer with explicit text
+  labels for base, branch, and pair states; a compact compatibility matrix; summary counts; and
+  JSON, HTML, and log locations. Machine-readable demo output remains progress-free.
+- Default storage uses the locked repository-fingerprint/run-ID hierarchy and refreshes
+  `latest/result.json` and `latest/report.html`. Explicit output remains the exact external
+  directory requested by the caller.
+- Command output is retained separately up to 5 MB per stream and command, staged in an
+  ownership-marked directory beneath `os.tmpdir()`, stripped of ANSI controls, redacted, and then
+  published under run-relative `logs/` paths. Every destination file is completed before an
+  atomic link or rename makes it visible.
+- Persistent `result.json` is Zod-validated with repository roots and selected worktree paths
+  removed. The HTML embeds a second, stricter Zod-validated projection that omits all repository
+  and worktree path fields and redacts environment values from commands and evidence.
+- Added a framework-free, self-contained report with summary cards, an accessible matrix, branch
+  snapshots, evidence drawer, classifications, commands, durations, exit details, bounded stdout
+  and stderr, reproduction steps, full captured SHAs, limitations, responsive layout, and print
+  styles.
+- HTML and JSON serialization tests cover hostile tags including `</script>`, attributes, Unicode,
+  ANSI control sequences, environment values, and local paths. The report CSP disables all
+  connections and external resources; the implementation contains no fetch or runtime request.
+- A regression first proved that an otherwise valid long command ID could exceed filesystem
+  filename limits. Log filenames now preserve ordinary IDs and use a bounded prefix plus stable
+  digest for long IDs without changing the configured ID or scan semantics.
+- A publication-race regression proved that recursive rollback could remove a foreign file added
+  after BranchMesh created a new output directory. Rollback now removes only exact files it
+  published and then removes only empty directories.
+- The complete suite passes with 87 tests across 24 files. The real demo verification observes
+  three passing branches, one `BEHAVIORAL_CONFLICT` with `PAIR_TEST_FAILURE`, two
+  `NO_DETECTED_CONFLICT` pairs, validated offline HTML, 14 separate log files, unchanged project
+  state, and no remaining temporary worktree or report-staging directory.
+
+Milestone boundary:
+
+- The current deterministic `demo` command is the only CLI surface wired to these output modules;
+  `scan`, `init`, `doctor`, `clean`, and the rest of CLI completeness remain Milestone 5.
+- No Codex skill, caching, hosted assets, backend, runtime network call, merge-order testing, or
+  higher-order combination was added.
+- Milestone 4 remains awaiting human acceptance and has not been committed.
 
 ## Milestone 5 — Not started: CLI completeness
 

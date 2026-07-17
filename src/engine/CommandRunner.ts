@@ -3,7 +3,7 @@ import path from "node:path";
 
 import type { CommandKind } from "../config/schema.js";
 import { createAbortError } from "../model/errors.js";
-import { CommandResultSchema, type CommandResult } from "../model/results.js";
+import { CommandResultSchema, type BoundedLog, type CommandResult } from "../model/results.js";
 import { BoundedOutput } from "../utils/BoundedOutput.js";
 
 export interface PipelineCommand {
@@ -17,14 +17,17 @@ export interface PipelineCommand {
 export interface CommandRunOptions {
   readonly signal?: AbortSignal | undefined;
   readonly maximumLogBytes: number;
+  readonly maximumRawLogBytes?: number | undefined;
   readonly terminationGraceMs?: number | undefined;
 }
 
 export interface CommandExecution {
   readonly result: CommandResult;
-  readonly stdout: string;
-  readonly stderr: string;
+  readonly rawStdout: BoundedLog;
+  readonly rawStderr: BoundedLog;
 }
+
+export const maximumRawLogBytes = 5_000_000;
 
 const gitContextVariables = [
   "GIT_ALTERNATE_OBJECT_DIRECTORIES",
@@ -52,6 +55,8 @@ export class CommandRunner {
     const startedAt = Date.now();
     const stdout = new BoundedOutput(options.maximumLogBytes);
     const stderr = new BoundedOutput(options.maximumLogBytes);
+    const rawStdout = new BoundedOutput(options.maximumRawLogBytes ?? maximumRawLogBytes);
+    const rawStderr = new BoundedOutput(options.maximumRawLogBytes ?? maximumRawLogBytes);
     const child = spawn(command.command, {
       cwd,
       detached: process.platform !== "win32",
@@ -59,8 +64,14 @@ export class CommandRunner {
       shell: true,
       stdio: ["ignore", "pipe", "pipe"],
     });
-    child.stdout.on("data", (chunk: Buffer) => stdout.append(chunk));
-    child.stderr.on("data", (chunk: Buffer) => stderr.append(chunk));
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout.append(chunk);
+      rawStdout.append(chunk);
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr.append(chunk);
+      rawStderr.append(chunk);
+    });
 
     const processResult = await new Promise<{
       exitCode: number | null;
@@ -171,8 +182,8 @@ export class CommandRunner {
         stdout: stdoutResult,
         stderr: stderrResult,
       }),
-      stdout: stdoutResult.text,
-      stderr: stderrResult.text,
+      rawStdout: rawStdout.result(),
+      rawStderr: rawStderr.result(),
     };
   }
 }

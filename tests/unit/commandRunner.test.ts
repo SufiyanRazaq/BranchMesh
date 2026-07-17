@@ -60,6 +60,16 @@ describe("CommandRunner", () => {
         capturedBytes: 1024,
         truncated: true,
       });
+      expect(execution.rawStdout).toMatchObject({
+        totalBytes: 10_000,
+        capturedBytes: 10_000,
+        truncated: false,
+      });
+      expect(execution.rawStderr).toMatchObject({
+        totalBytes: 12_000,
+        capturedBytes: 12_000,
+        truncated: false,
+      });
     } finally {
       await rm(worktree, { recursive: true });
     }
