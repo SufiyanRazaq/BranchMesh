@@ -287,7 +287,10 @@ async function executeJob(
 
   try {
     const worktreePath = await context.worktrees.create(id, context.snapshot.base.sha);
-    const merge = await context.mergeRunner.merge(worktreePath, branches);
+    await context.worktrees.setActivity(id, "git");
+    const merge = await context.mergeRunner
+      .merge(worktreePath, branches)
+      .finally(async () => await context.worktrees.setActivity(id, "idle"));
     if (!merge.merged) {
       return createJobResult({
         id,
@@ -306,10 +309,13 @@ async function executeJob(
 
     const commands = [];
     for (const command of context.commands) {
-      const execution = await context.commandRunner.run(command, worktreePath, {
-        signal: context.signal,
-        maximumLogBytes: context.maximumLogBytes,
-      });
+      await context.worktrees.setActivity(id, "command");
+      const execution = await context.commandRunner
+        .run(command, worktreePath, {
+          signal: context.signal,
+          maximumLogBytes: context.maximumLogBytes,
+        })
+        .finally(async () => await context.worktrees.setActivity(id, "idle"));
       await context.reportPublisher.stageCommandLogs(id, commands.length, command.id, execution);
       commands.push(execution.result);
       if (execution.result.status !== "passed") {

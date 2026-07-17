@@ -188,6 +188,20 @@ describe("repository preflight", () => {
       inspector.preflight("/path/that/need/not/exist", explicitConfig),
     ).rejects.toMatchObject({ exitCode: 4 });
   });
+
+  it("classifies a missing base as invalid base exit code 3", async () => {
+    const demo = await createDemoRepository();
+    try {
+      await expect(
+        new RepositoryInspector(new GitClient()).preflight(
+          demo.repositoryPath,
+          parseScanConfig({ ...explicitConfig, base: "missing-base" }),
+        ),
+      ).rejects.toMatchObject({ exitCode: 3 });
+    } finally {
+      await demo.cleanup();
+    }
+  });
 });
 
 async function runGit(demo: { root: string; repositoryPath: string }, args: readonly string[]) {

@@ -2,6 +2,9 @@
   "name": "branchmesh",
   "version": "0.0.0",
   "private": true,
+  "files": [
+    "dist"
+  ],
   "description": "Detect Git branches that pass independently but fail when combined.",
   "type": "module",
   "bin": {
@@ -17,6 +20,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "tsup",
+    "prepack": "npm run build",
     "demo": "npm run build --silent && npm run demo:verify",
     "demo:scan": "node dist/cli.js demo",
     "demo:verify": "node scripts/verify-demo.mjs",

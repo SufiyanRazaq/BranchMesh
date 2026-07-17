@@ -345,3 +345,97 @@ Repository actions:
 
 - No commit, push, publication, tag, or release was performed.
 - Milestone 5 was not started.
+
+## 2026-07-17 — Milestone 5 complete CLI
+
+- **Status:** Implemented and locally verified; awaiting human acceptance.
+- **Scope:** Complete and harden `init`, `doctor`, `scan`, `demo`, `clean`, and `version`; package
+  and install the local CLI. No Codex skill or Milestone 6 work was added.
+
+Codex work:
+
+- Replaced the demo-only Commander surface with all six approved commands, command-specific help,
+  usage examples, fixed CLI/config precedence, and an error boundary that reserves exit `1` for
+  completed incompatibility scans. No-argument help, help flags, and short version return `0`;
+  invalid commands, options, and values return `2`.
+- Added no-follow repository-root configuration loading with exact JSON/Zod issue paths. CLI base,
+  explicit-branch, selected-worktree, and dirty-state overrides are fully revalidated before the
+  existing scan engine receives them.
+- Added deterministic initialization from fixed package-script names, `packageManager`, npm,
+  pnpm, yarn, and bun lockfiles, and main/master/current-branch base discovery. Initialization
+  refuses ambiguous managers, missing validation scripts, symlink/non-file targets, and existing
+  config without `--force`; it publishes only `branchmesh.config.json`.
+- Added read-only doctor orchestration over production preflight. It validates the supported
+  platform and runtime, repository/common Git identity, immutable refs, worktree dirt, submodule
+  and LFS absence, statically discoverable command entry points and package scripts, and accessible
+  temporary/report ancestors. It reports complex shell or relative executable checks honestly as
+  deferred warnings and never executes validation commands.
+- Added the real-repository `scan` command with external output normalization, terminal progress,
+  final matrix/summary/paths, optional argv-only report opening, active-worktree selection, and
+  preserved 0/1/2/3/4/130 behavior. The detailed version command works outside Git and reports the
+  package, Node, Git, OS release, and architecture.
+- Kept demo on the production engine with its expected direct exit `1`; the existing acceptance
+  harness continues to return `0` only after validating classifications, reports, unchanged state,
+  and cleanup.
+- Added durable execution locks and per-worktree process activity transitions persisted before Git
+  or validation process launch and cleared only after process-tree exit. This gives orphan recovery
+  a conservative, disk-backed proof that a dead owner did not leave a known process in flight.
+- Added dry-run-by-default cleanup scoped to the current canonical common Git directory. Recovery
+  rejects incomplete, mismatched, symlinked, path-escaping, unexpectedly registered, live, locked,
+  or non-idle roots; uses an exclusive cleanup claim; removes only exact recorded Git worktrees;
+  and never calls repository-wide prune or deletes report history.
+- Derived the bundled version from `package.json`, added a `dist` package allowlist and `prepack`
+  build, and retained `private: true` so local archive testing cannot accidentally publish.
+
+Regression and acceptance tests:
+
+- Added Commander tests for the exact command list, help/version success, malformed flags/values,
+  and exit-code mapping.
+- Added real temporary-repository tests for config generation, no-force preservation, force
+  replacement, conflicting lockfiles, root-only loading, override validation, doctor state
+  preservation and dirt warnings, missing executables, production CLI scan output, and expected
+  incompatibility exit `1`.
+- Added orphan-clean tests for dry run, exact stale removal, idempotency, live-process retention,
+  non-idle retention, corrupt evidence refusal, restored normal cleanup, and unchanged original Git
+  state. The existing ownership suite now also rejects a symlinked run lock.
+- Added invalid-base exit `3` coverage and OS opener tests proving explicit cwd, executable-plus-argv
+  use with `shell: false`, close-awaited cancellation, failure mapping, and native-Windows refusal.
+
+Verification:
+
+- `npm run format:check` — passed.
+- `npm run lint` — passed with zero warnings.
+- `npm run typecheck` — passed under strict TypeScript.
+- `npm test` — passed, 107 tests across 28 files.
+- `npm run build` — passed with ESM, source map, declaration, and executable shebang.
+- `npm run demo:verify` — passed; the actual demo scan returned `1` and the verifier confirmed the
+  accepted branch/pair classifications, report bundle, unchanged project repository, and cleanup.
+- `npm run verify` — passed end to end with the final 107-test suite.
+- `npm pack --json` — passed using an isolated temporary npm cache; the archive contains four
+  allowlisted entries and an executable mode for `dist/cli.js`.
+- A fresh temporary-prefix install of the archive added only the package and its three runtime
+  dependencies. Installed help, `--version`, and `version` returned `0`; invalid command/flag/input
+  returned `2`; the installed real demo returned `1` with `BEHAVIORAL_CONFLICT` and
+  `PAIR_TEST_FAILURE`.
+
+Remaining work and risks:
+
+- This session exercised macOS. Linux and WSL remain supported by design but still need release
+  matrix runs; native Windows is deliberately rejected.
+- `access()`-based doctor storage checks are read-only and cannot eliminate later disk-full,
+  permission-race, or mount-state changes before a scan creates its owned roots.
+- Partial execution roots created by an uncatchable crash before all ownership evidence is
+  published are deliberately retained rather than guessed safe. Existing stale cleanup claims are
+  likewise retained for manual inspection because ownership safety takes priority over recovery.
+- Report-staging roots are independently ownership-marked and cleaned in scan `finally`, but they
+  do not contain the repository identity and process-activity evidence required for `clean`; the
+  command intentionally does not sweep them after `SIGKILL`.
+- Optional report opening depends on the host `open` or `xdg-open` utility. Opening failure is an
+  infrastructure exit `2` after the already-generated report remains available.
+- Source maps intentionally embed source content in the local archive. The package remains private
+  and no registry publication occurred.
+
+Repository actions:
+
+- No commit, push, publication, tag, or release was performed.
+- Milestone 6 and the Codex skill were not started.

@@ -1,11 +1,11 @@
 export type BranchMeshExitCode = 0 | 1 | 2 | 3 | 4 | 130;
 
 export class BranchMeshError extends Error {
-  public readonly exitCode: Exclude<BranchMeshExitCode, 0 | 1 | 3>;
+  public readonly exitCode: Exclude<BranchMeshExitCode, 0 | 1>;
 
   public constructor(
     message: string,
-    exitCode: Exclude<BranchMeshExitCode, 0 | 1 | 3>,
+    exitCode: Exclude<BranchMeshExitCode, 0 | 1>,
     options?: ErrorOptions,
   ) {
     super(message, options);
@@ -25,6 +25,20 @@ export class InfrastructureError extends BranchMeshError {
   public constructor(message: string, options?: ErrorOptions) {
     super(message, 2, options);
     this.name = "InfrastructureError";
+  }
+}
+
+export class ConfigurationError extends BranchMeshError {
+  public constructor(message: string, options?: ErrorOptions) {
+    super(message, 2, options);
+    this.name = "ConfigurationError";
+  }
+}
+
+export class InvalidBaseError extends BranchMeshError {
+  public constructor(message: string, options?: ErrorOptions) {
+    super(message, 3, options);
+    this.name = "InvalidBaseError";
   }
 }
 

@@ -1,9 +1,14 @@
-import { chmod, lstat, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { access, chmod, lstat, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
 import type { ScanConfig } from "../config/schema.js";
-import { InfrastructureError, UnsupportedRepositoryError } from "../model/errors.js";
+import {
+  InfrastructureError,
+  InvalidBaseError,
+  UnsupportedRepositoryError,
+} from "../model/errors.js";
 import { BranchSnapshotSchema, type BranchSnapshot } from "../model/results.js";
 import { isPathInside } from "../utils/paths.js";
 import { assertGitSuccess } from "./GitClient.js";
@@ -43,6 +48,7 @@ export interface RepositoryInspectorOptions {
   readonly temporaryDirectory?: string;
   readonly nodeVersion?: string;
   readonly platform?: NodeJS.Platform;
+  readonly temporaryStorageCheck?: "access" | "probe";
 }
 
 export class RepositoryInspector {
@@ -51,6 +57,7 @@ export class RepositoryInspector {
   readonly #temporaryDirectory: string;
   readonly #nodeVersion: string;
   readonly #platform: NodeJS.Platform;
+  readonly #temporaryStorageCheck: "access" | "probe";
 
   public constructor(git: GitClient, options: RepositoryInspectorOptions | string = {}) {
     const normalizedOptions = typeof options === "string" ? { neutralCwd: options } : options;
@@ -59,6 +66,7 @@ export class RepositoryInspector {
     this.#temporaryDirectory = path.resolve(normalizedOptions.temporaryDirectory ?? os.tmpdir());
     this.#nodeVersion = normalizedOptions.nodeVersion ?? process.versions.node;
     this.#platform = normalizedOptions.platform ?? process.platform;
+    this.#temporaryStorageCheck = normalizedOptions.temporaryStorageCheck ?? "probe";
   }
 
   public async resolveRepositoryRoot(
@@ -66,13 +74,21 @@ export class RepositoryInspector {
     signal?: AbortSignal,
   ): Promise<RepositoryIdentity> {
     const requestedPath = path.resolve(repositoryPath);
-    const rootResult = assertGitSuccess(
-      await this.#git.run(["-C", requestedPath, "rev-parse", "--show-toplevel"], {
-        cwd: this.#neutralCwd,
-        signal,
-      }),
-      "Repository-root resolution",
-    );
+    const rootCommand = await this.#git.run(["-C", requestedPath, "rev-parse", "--show-toplevel"], {
+      cwd: this.#neutralCwd,
+      signal,
+    });
+    if (
+      rootCommand.exitCode !== 0 &&
+      /not a git repository|not a git work tree/iu.test(
+        `${rootCommand.stderr}\n${rootCommand.stdout}`,
+      )
+    ) {
+      throw new UnsupportedRepositoryError(
+        "The selected directory is not a supported Git worktree",
+      );
+    }
+    const rootResult = assertGitSuccess(rootCommand, "Repository-root resolution");
     const root = await realpath(rootResult.stdout.trim());
 
     const commonDirectoryResult = assertGitSuccess(
@@ -224,7 +240,14 @@ export class RepositoryInspector {
     reference: string,
     signal?: AbortSignal,
   ): Promise<UnenrichedSnapshot> {
-    const sha = await this.#resolveCommit(repository, reference, signal);
+    let sha: string;
+    try {
+      sha = await this.#resolveCommit(repository, reference, signal);
+    } catch (error: unknown) {
+      throw new InvalidBaseError(`The configured base '${reference}' is missing or not a commit`, {
+        cause: error,
+      });
+    }
     const symbolic = await this.#git.run(
       [
         "--git-dir",
@@ -297,8 +320,17 @@ export class RepositoryInspector {
         }
         const status = assertGitSuccess(
           await this.#git.run(
-            ["-C", worktree.path, "status", "--porcelain=v1", "-z", "--untracked-files=all"],
-            { cwd: this.#neutralCwd, signal },
+            [
+              "-c",
+              "core.fsmonitor=false",
+              "-C",
+              worktree.path,
+              "status",
+              "--porcelain=v1",
+              "-z",
+              "--untracked-files=all",
+            ],
+            { cwd: this.#neutralCwd, signal, env: { GIT_OPTIONAL_LOCKS: "0" } },
           ),
           `Dirty-state inspection for ${snapshot.ref}`,
         );
@@ -402,6 +434,10 @@ export class RepositoryInspector {
 
   async #verifyTemporaryStorage(): Promise<void> {
     const canonicalTemporaryDirectory = await realpath(this.#temporaryDirectory);
+    if (this.#temporaryStorageCheck === "access") {
+      await access(canonicalTemporaryDirectory, constants.R_OK | constants.W_OK | constants.X_OK);
+      return;
+    }
     const probe = await realpath(
       await mkdtemp(path.join(canonicalTemporaryDirectory, "branchmesh-preflight-")),
     );

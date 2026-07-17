@@ -16,18 +16,25 @@ export function createRepositoryFingerprint(commonGitDirectory: string): string 
 }
 
 export function resolveUserDataRoot(environment: NodeJS.ProcessEnv = process.env): string {
-  if (process.platform === "darwin") {
+  return resolveUserDataRootForPlatform(process.platform, environment);
+}
+
+export function resolveUserDataRootForPlatform(
+  platform: NodeJS.Platform,
+  environment: NodeJS.ProcessEnv = process.env,
+): string {
+  if (platform === "darwin") {
     return path.join(os.homedir(), "Library", "Application Support", "BranchMesh");
   }
 
-  if (process.platform === "linux") {
+  if (platform === "linux") {
     const configuredRoot = environment["XDG_DATA_HOME"];
     return configuredRoot === undefined || configuredRoot.length === 0
       ? path.join(os.homedir(), ".local", "share", "branchmesh")
       : path.resolve(configuredRoot, "branchmesh");
   }
 
-  throw new Error(`BranchMesh does not support platform ${process.platform} in the MVP`);
+  throw new Error(`BranchMesh does not support platform ${platform} in the MVP`);
 }
 
 export function resolveRunOutputDirectory(
@@ -47,14 +54,15 @@ export function resolveReportDirectories(
   commonGitDirectory: string,
   runId: string,
   explicitOutput: string | undefined,
-  dataRoot = resolveUserDataRoot(),
+  dataRoot?: string,
+  environment: NodeJS.ProcessEnv = process.env,
 ): ReportDirectories {
   if (explicitOutput !== undefined) {
     return { runDirectory: path.resolve(explicitOutput), latestDirectory: null };
   }
 
   const repositoryDirectory = path.join(
-    dataRoot,
+    dataRoot ?? resolveUserDataRoot(environment),
     "repositories",
     createRepositoryFingerprint(commonGitDirectory),
   );

@@ -19,10 +19,11 @@ import { BranchSnapshotSchema, type BranchSnapshot } from "../model/results.js";
 import { isPathInside } from "../utils/paths.js";
 import type { RepositoryIdentity } from "../git/RepositoryInspector.js";
 
-const markerFileName = ".branchmesh-owner.json";
-const manifestFileName = "manifest.json";
+export const executionMarkerFileName = ".branchmesh-owner.json";
+export const executionLockFileName = ".branchmesh-lock.json";
+export const executionManifestFileName = "manifest.json";
 
-const OwnershipMarkerSchema = z.strictObject({
+export const OwnershipMarkerSchema = z.strictObject({
   schemaVersion: z.literal(1),
   owner: z.literal("branchmesh"),
   runId: z.string().min(1),
@@ -32,13 +33,23 @@ const OwnershipMarkerSchema = z.strictObject({
   createdAt: z.string().min(1),
 });
 
-const WorktreeRecordSchema = z.strictObject({
+export const ExecutionLockSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  owner: z.literal("branchmesh"),
+  runId: z.string().min(1),
+  ownershipToken: z.string().uuid(),
+  processId: z.number().int().positive(),
+  startedAt: z.string().min(1),
+});
+
+export const WorktreeRecordSchema = z.strictObject({
   jobId: z.string().min(1),
   path: z.string().min(1),
   state: z.enum(["planned", "active", "removed"]),
+  activity: z.enum(["idle", "git", "command"]),
 });
 
-const RunManifestSchema = z.strictObject({
+export const RunManifestSchema = z.strictObject({
   schemaVersion: z.literal(1),
   runId: z.string().min(1),
   ownershipToken: z.string().uuid(),
@@ -49,8 +60,9 @@ const RunManifestSchema = z.strictObject({
   worktrees: z.array(WorktreeRecordSchema),
 });
 
-type OwnershipMarker = z.infer<typeof OwnershipMarkerSchema>;
-type RunManifest = z.infer<typeof RunManifestSchema>;
+export type OwnershipMarker = z.infer<typeof OwnershipMarkerSchema>;
+export type ExecutionLock = z.infer<typeof ExecutionLockSchema>;
+export type RunManifest = z.infer<typeof RunManifestSchema>;
 export type WorktreeRecord = z.infer<typeof WorktreeRecordSchema>;
 
 export interface ExecutionOwnershipOptions {
@@ -66,14 +78,21 @@ export class ExecutionOwnership {
   public readonly worktreesDirectory: string;
 
   readonly #marker: OwnershipMarker;
+  readonly #lock: ExecutionLock;
   #manifest: RunManifest;
   #mutationTail: Promise<void> = Promise.resolve();
 
-  private constructor(root: string, marker: OwnershipMarker, manifest: RunManifest) {
+  private constructor(
+    root: string,
+    marker: OwnershipMarker,
+    lock: ExecutionLock,
+    manifest: RunManifest,
+  ) {
     this.root = root;
     this.hooksDirectory = path.join(root, "hooks");
     this.worktreesDirectory = path.join(root, "worktrees");
     this.#marker = marker;
+    this.#lock = lock;
     this.#manifest = manifest;
   }
 
@@ -101,11 +120,20 @@ export class ExecutionOwnership {
         branches: [...options.branches],
         worktrees: [],
       });
+      const lock = ExecutionLockSchema.parse({
+        schemaVersion: 1,
+        owner: "branchmesh",
+        runId: options.runId,
+        ownershipToken: marker.ownershipToken,
+        processId: process.pid,
+        startedAt: marker.createdAt,
+      });
 
-      const ownership = new ExecutionOwnership(root, marker, manifest);
+      const ownership = new ExecutionOwnership(root, marker, lock, manifest);
       await mkdir(ownership.hooksDirectory, { mode: 0o700 });
       await mkdir(ownership.worktreesDirectory, { mode: 0o700 });
-      await writeJsonAtomically(path.join(root, markerFileName), marker);
+      await writeJsonAtomically(path.join(root, executionMarkerFileName), marker);
+      await writeJsonAtomically(path.join(root, executionLockFileName), lock);
       await ownership.#persistManifest(manifest);
       return ownership;
     } catch (error: unknown) {
@@ -126,12 +154,22 @@ export class ExecutionOwnership {
       }
       return RunManifestSchema.parse({
         ...manifest,
-        worktrees: [...manifest.worktrees, { jobId, path: worktreePath, state: "planned" }],
+        worktrees: [
+          ...manifest.worktrees,
+          { jobId, path: worktreePath, state: "planned", activity: "git" },
+        ],
       });
     });
   }
 
   public async updateWorktreeState(jobId: string, state: WorktreeRecord["state"]): Promise<void> {
+    await this.updateWorktree(jobId, { state });
+  }
+
+  public async updateWorktree(
+    jobId: string,
+    update: Partial<Pick<WorktreeRecord, "state" | "activity">>,
+  ): Promise<void> {
     await this.#mutateManifest((manifest) => {
       const index = manifest.worktrees.findIndex((record) => record.jobId === jobId);
       if (index === -1) {
@@ -140,7 +178,7 @@ export class ExecutionOwnership {
       return RunManifestSchema.parse({
         ...manifest,
         worktrees: manifest.worktrees.map((record, recordIndex) =>
-          recordIndex === index ? { ...record, state } : record,
+          recordIndex === index ? { ...record, ...update } : record,
         ),
       });
     });
@@ -162,12 +200,23 @@ export class ExecutionOwnership {
 
     const marker = OwnershipMarkerSchema.parse(
       JSON.parse(
-        await readRegularOwnershipFile(path.join(this.root, markerFileName), "ownership marker"),
+        await readRegularOwnershipFile(
+          path.join(this.root, executionMarkerFileName),
+          "ownership marker",
+        ),
+      ),
+    );
+    const lock = ExecutionLockSchema.parse(
+      JSON.parse(
+        await readRegularOwnershipFile(path.join(this.root, executionLockFileName), "run lock"),
       ),
     );
     const manifest = RunManifestSchema.parse(
       JSON.parse(
-        await readRegularOwnershipFile(path.join(this.root, manifestFileName), "run manifest"),
+        await readRegularOwnershipFile(
+          path.join(this.root, executionManifestFileName),
+          "run manifest",
+        ),
       ),
     );
 
@@ -176,6 +225,9 @@ export class ExecutionOwnership {
       ["ownership token", this.#marker.ownershipToken, marker.ownershipToken],
       ["repository root", this.#marker.repositoryRoot, marker.repositoryRoot],
       ["common Git directory", this.#marker.commonGitDirectory, marker.commonGitDirectory],
+      ["lock run ID", this.#lock.runId, lock.runId],
+      ["lock ownership token", this.#lock.ownershipToken, lock.ownershipToken],
+      ["lock process ID", this.#lock.processId, lock.processId],
       ["manifest run ID", this.#marker.runId, manifest.runId],
       ["manifest ownership token", this.#marker.ownershipToken, manifest.ownershipToken],
       ["manifest repository root", this.#marker.repositoryRoot, manifest.repositoryRoot],
@@ -249,7 +301,7 @@ export class ExecutionOwnership {
   }
 
   async #persistManifest(manifest: RunManifest): Promise<void> {
-    await writeJsonAtomically(path.join(this.root, manifestFileName), manifest);
+    await writeJsonAtomically(path.join(this.root, executionManifestFileName), manifest);
   }
 }
 
@@ -268,7 +320,7 @@ async function writeJsonAtomically(filePath: string, value: unknown): Promise<vo
   }
 }
 
-async function readRegularOwnershipFile(filePath: string, label: string): Promise<string> {
+export async function readRegularOwnershipFile(filePath: string, label: string): Promise<string> {
   const metadata = await lstat(filePath);
   if (metadata.isSymbolicLink()) {
     throw new Error(`BranchMesh ${label} may not be a symbolic link`);

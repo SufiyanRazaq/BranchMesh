@@ -6,7 +6,7 @@ import type { GitClient } from "../git/GitClient.js";
 import type { RepositoryIdentity } from "../git/RepositoryInspector.js";
 import { parseWorktreePorcelainZ } from "../git/WorktreeParser.js";
 import { isPathInside } from "../utils/paths.js";
-import type { ExecutionOwnership } from "./ownership.js";
+import type { ExecutionOwnership, WorktreeRecord } from "./ownership.js";
 
 export class WorktreeManager {
   readonly #git: GitClient;
@@ -52,7 +52,7 @@ export class WorktreeManager {
       { cwd: this.#ownership.root, signal: this.#signal },
     );
     assertGitSuccess(result, `Detached worktree creation for ${jobId}`);
-    await this.#ownership.updateWorktreeState(jobId, "active");
+    await this.#ownership.updateWorktree(jobId, { state: "active", activity: "idle" });
     return worktreePath;
   }
 
@@ -67,6 +67,7 @@ export class WorktreeManager {
     }
 
     await this.#ownership.verify();
+    await this.#ownership.updateWorktree(jobId, { activity: "git" });
 
     const registeredPaths = await this.listRepositoryWorktrees();
     if (registeredPaths.includes(record.path)) {
@@ -95,7 +96,11 @@ export class WorktreeManager {
       await this.#ownership.assertOwnedPath(jobDirectory);
       await rm(jobDirectory, { recursive: true });
     }
-    await this.#ownership.updateWorktreeState(jobId, "removed");
+    await this.#ownership.updateWorktree(jobId, { state: "removed", activity: "idle" });
+  }
+
+  public async setActivity(jobId: string, activity: WorktreeRecord["activity"]): Promise<void> {
+    await this.#ownership.updateWorktree(jobId, { activity });
   }
 
   public async cleanupAll(): Promise<void> {

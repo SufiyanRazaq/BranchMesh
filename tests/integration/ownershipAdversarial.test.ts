@@ -41,7 +41,7 @@ describe("adversarial execution ownership", () => {
     }
   });
 
-  it.each([".branchmesh-owner.json", "manifest.json"])(
+  it.each([".branchmesh-owner.json", ".branchmesh-lock.json", "manifest.json"])(
     "rejects symlinked ownership metadata at %s",
     async (metadataFileName) => {
       const repository = await createIndependentPair();

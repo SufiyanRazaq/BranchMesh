@@ -137,7 +137,7 @@ Milestone boundary:
 - The accepted implementation was committed as `d30f153` with message
   `test: add adversarial Git safety coverage`.
 
-## Milestone 4 — Implemented; acceptance pending: Product output
+## Milestone 4 — Complete and approved: Product output
 
 Deliverables:
 
@@ -189,9 +189,10 @@ Milestone boundary:
   `scan`, `init`, `doctor`, `clean`, and the rest of CLI completeness remain Milestone 5.
 - No Codex skill, caching, hosted assets, backend, runtime network call, merge-order testing, or
   higher-order combination was added.
-- Milestone 4 remains awaiting human acceptance and has not been committed.
+- Milestone 4 was approved and committed as `df22df4` with message
+  `feat: generate offline compatibility report`.
 
-## Milestone 5 — Not started: CLI completeness
+## Milestone 5 — Implemented; acceptance pending: CLI completeness
 
 Deliverables:
 
@@ -202,6 +203,54 @@ Acceptance gate:
 
 - Every command observes its write and safety contract.
 - `init` does not overwrite configuration without `--force`.
+
+Implementation evidence on 2026-07-17:
+
+- Added complete Commander surfaces and usage examples for `init`, `doctor`, `scan`, `demo`,
+  `clean`, and `version`. Help and short version exit `0`; malformed flags, commands, and values
+  map to configuration exit `2` instead of the scan-incompatibility code.
+- `init` deterministically inspects the repository-root `package.json`, declared package manager,
+  npm/pnpm/yarn/bun lockfiles, recognized validation scripts, and base candidates. It writes only
+  `branchmesh.config.json`, uses exclusive or atomic publication, rejects ambiguous managers and
+  unsafe targets, and requires `--force` before replacing a regular config.
+- `doctor` reuses production preflight without creating worktrees or reports. It checks platform,
+  Node, Git, repository/common-directory identity, immutable refs, selected dirt, unsupported
+  submodules/LFS, command entry points, and accessible temporary/report storage. Git status runs
+  with optional index locks and fsmonitor disabled.
+- `scan` loads the fixed repository-root config, reapplies Zod validation after base/branch,
+  active-worktree, and dirty-state CLI overrides, then invokes the existing production engine and
+  report path. Terminal progress, matrix, JSON/log/HTML paths, timeout, cancellation, and locked
+  exit precedence remain engine-owned.
+- `demo` retains the accepted temporary fixture, production scan engine, direct exit `1`, and
+  success-returning verification harness. `version` reports BranchMesh, Node, Git, and operating
+  system details and works outside a repository.
+- Added a durable run lock and per-worktree `idle`/`git`/`command` activity evidence before process
+  launch. `clean` is a dry run unless `--yes` or `--force` confirms it; it filters by canonical Git
+  common directory, skips live or uncertain roots, claims stale roots exclusively, validates
+  no-follow ownership/path/Git membership, runs only exact `git worktree remove --force <path>`,
+  and never prunes broadly or touches report history.
+- Package metadata now derives the CLI version from `package.json`, limits the tarball to `dist`,
+  runs a build in `prepack`, and retains the existing Node 20+ bin contract.
+- Added real-repository tests for configuration initialization/loading, doctor state preservation,
+  full CLI scan output and exit `1`, stale/live/corrupt/non-idle cleanup, ownership-lock symlinks,
+  invalid-base exit `3`, opener argv/cancellation, and Commander input errors.
+
+Verification evidence:
+
+- Formatting, linting, strict type-checking, build, and the complete 107-test/28-file suite pass.
+- The real demo verifier passes with three independently passing branches, one
+  `BEHAVIORAL_CONFLICT` with `PAIR_TEST_FAILURE`, two `NO_DETECTED_CONFLICT` pairs, unchanged
+  project state, and no remaining temporary worktrees.
+- `npm pack` invokes `prepack` and produces four entries only: `package.json`, the executable CLI,
+  its declaration, and its source map. A fresh temporary-prefix install succeeds; the installed
+  help and both version forms exit `0`, invalid input exits `2`, and its real demo exits `1` with
+  the expected classifications.
+
+Milestone boundary:
+
+- No Codex skill, caching, remote integration, new combination semantics, or product-output UI was
+  added. Milestone 6 has not started.
+- Milestone 5 is not committed, pushed, tagged, published, or otherwise released.
 
 ## Milestone 6 — Not started: Codex skill and documentation
 
