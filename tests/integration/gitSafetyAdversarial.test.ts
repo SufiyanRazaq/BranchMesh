@@ -235,6 +235,35 @@ describe("adversarial Git safety", () => {
     }
   });
 
+  it("prevents synthetic conflicts from writing shared rerere or automatic-maintenance state", async () => {
+    const repository = await TemporaryGitRepository.create({
+      baseFiles: { "shared.txt": "base\n" },
+    });
+    const rerereCache = path.join(repository.commonGitDirectory, "rr-cache");
+    try {
+      await repository.createBranch("feature/a", { "shared.txt": "branch A\n" });
+      await repository.createBranch("feature/b", { "shared.txt": "branch B\n" });
+      await repository.runGit(["config", "--local", "rerere.enabled", "true"]);
+      await repository.runGit(["config", "--local", "rerere.autoUpdate", "true"]);
+      await repository.runGit(["config", "--local", "maintenance.auto", "true"]);
+      await repository.runGit(["config", "--local", "gc.auto", "1"]);
+      expect(await pathExists(rerereCache)).toBe(false);
+
+      const outcome = await runPreservedScan(repository, scanConfig(ordinaryBranches));
+
+      expect(outcome.result.jobs.find((job) => job.kind === "pair")).toMatchObject({
+        classification: "TEXTUAL_CONFLICT",
+        conflictedFiles: ["shared.txt"],
+      });
+      expect(await pathExists(rerereCache)).toBe(false);
+      expect((await repository.runGit(["config", "--local", "rerere.enabled"])).stdout.trim()).toBe(
+        "true",
+      );
+    } finally {
+      await repository.cleanup();
+    }
+  });
+
   it("does not depend on global Git identity and never serializes environment values", async () => {
     const repository = await createIndependentPair();
     const emptyGlobalConfig = path.join(repository.root, "empty-global-gitconfig");

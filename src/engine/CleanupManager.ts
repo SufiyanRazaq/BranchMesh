@@ -168,11 +168,6 @@ export async function cleanExecutionRoots(options: CleanupOptions): Promise<Clea
 
     try {
       await removeOwnedRoot(git, repository, evidence, temporaryDirectory, options.signal);
-      entries.push({
-        name: directoryEntry.name,
-        status: "removed",
-        detail: "owned orphan execution root removed",
-      });
     } catch (error: unknown) {
       ownershipFailures += 1;
       entries.push({
@@ -180,9 +175,17 @@ export async function cleanExecutionRoots(options: CleanupOptions): Promise<Clea
         status: "refused",
         detail: safeErrorMessage(error, "safe cleanup could not be completed"),
       });
+      continue;
     }
+    throwIfAborted(options.signal);
+    entries.push({
+      name: directoryEntry.name,
+      status: "removed",
+      detail: "owned orphan execution root removed",
+    });
   }
 
+  throwIfAborted(options.signal);
   return { repository, dryRun: !options.execute, entries, ownershipFailures };
 }
 

@@ -1,4 +1,5 @@
-import { access, readFile, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -8,7 +9,7 @@ import { ExecutionOwnership, executionLockFileName } from "../../src/engine/owne
 import { GitClient } from "../../src/git/GitClient.js";
 import { RepositoryInspector, type RepositorySnapshot } from "../../src/git/RepositoryInspector.js";
 import { TemporaryGitRepository } from "../helpers/TemporaryGitRepository.js";
-import { scanConfig } from "../helpers/scanTestSupport.js";
+import { scanConfig, waitFor } from "../helpers/scanTestSupport.js";
 
 const staleProcessId = 2_147_483_647;
 
@@ -106,6 +107,66 @@ describe("owned orphan cleanup", () => {
       await repository.cleanup();
     }
   });
+
+  it("finishes an ownership-critical removal but reports a signal received during cleanup", async () => {
+    const repository = await createScannableRepository();
+    const before = await repository.captureState();
+    const isolatedTemporaryDirectory = await mkdtemp(
+      path.join(os.tmpdir(), "branchmesh-clean-signal-test-"),
+    );
+    const originalTemporaryDirectory = process.env["TMPDIR"];
+    let ownership: ExecutionOwnership | undefined;
+    let manager: WorktreeManager | undefined;
+    let originalLock: string | undefined;
+
+    try {
+      const snapshot = await snapshotRepository(repository);
+      process.env["TMPDIR"] = isolatedTemporaryDirectory;
+      try {
+        ownership = await createOwnership(snapshot, "cleanup-cancelled");
+      } finally {
+        restoreEnvironment("TMPDIR", originalTemporaryDirectory);
+      }
+      manager = new WorktreeManager(new GitClient(), snapshot.repository, ownership);
+      for (let index = 0; index < 5; index += 1) {
+        await manager.create(`orphan-job-${String(index)}`, snapshot.base.sha);
+      }
+      originalLock = await makeLockStale(ownership.root);
+      const controller = new AbortController();
+      const claimPath = path.join(ownership.root, ".branchmesh-cleanup-claim.json");
+      expect(await readdir(isolatedTemporaryDirectory)).toEqual([path.basename(ownership.root)]);
+      const cleanup = cleanExecutionRoots({
+        repositoryPath: repository.repositoryPath,
+        execute: true,
+        signal: controller.signal,
+        temporaryDirectory: isolatedTemporaryDirectory,
+      });
+      await waitFor(async () => await pathExists(claimPath));
+      controller.abort();
+
+      await expect(cleanup).rejects.toMatchObject({ name: "AbortError" });
+      expect(controller.signal.aborted).toBe(true);
+      expect(await pathExists(ownership.root)).toBe(false);
+      expect(await repository.captureState()).toEqual(before);
+    } finally {
+      if (
+        ownership !== undefined &&
+        manager !== undefined &&
+        originalLock !== undefined &&
+        (await pathExists(ownership.root))
+      ) {
+        await writeFile(path.join(ownership.root, executionLockFileName), originalLock, "utf8");
+        process.env["TMPDIR"] = isolatedTemporaryDirectory;
+        try {
+          await manager.cleanupAll();
+        } finally {
+          restoreEnvironment("TMPDIR", originalTemporaryDirectory);
+        }
+      }
+      await repository.cleanup();
+      await rm(isolatedTemporaryDirectory, { recursive: true });
+    }
+  });
 });
 
 async function createScannableRepository(): Promise<TemporaryGitRepository> {
@@ -152,5 +213,13 @@ async function pathExists(candidate: string): Promise<boolean> {
       return false;
     }
     throw error;
+  }
+}
+
+function restoreEnvironment(name: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
   }
 }
