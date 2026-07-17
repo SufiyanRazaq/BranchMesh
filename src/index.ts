@@ -24,7 +24,7 @@ export function createProgram(options: ProgramOptions = {}): Command {
 
   program
     .command("demo")
-    .description("Run the deterministic two-branch vertical-slice demonstration.")
+    .description("Run the deterministic three-branch scanning-engine demonstration.")
     .option("--output <directory>", "write result.json to this external directory")
     .option("--json", "print machine-readable demo evidence")
     .action(async (commandOptions: DemoCommandOptions) => {
@@ -35,7 +35,7 @@ export function createProgram(options: ProgramOptions = {}): Command {
       });
       const base = outcome.scan.result.jobs.find((job) => job.kind === "base");
       const branches = outcome.scan.result.jobs.filter((job) => job.kind === "branch");
-      const pair = outcome.scan.result.jobs.find((job) => job.kind === "pair");
+      const pairs = outcome.scan.result.jobs.filter((job) => job.kind === "pair");
       const evidence = {
         scanExitCode: outcome.scan.result.exitCode,
         resultPath: outcome.scan.resultPath,
@@ -49,11 +49,12 @@ export function createProgram(options: ProgramOptions = {}): Command {
           ref: job.branchRefs[0],
           classification: job.classification,
         })),
-        pair: {
-          classification: pair?.classification,
-          technicalClassification: pair?.technicalClassification,
-          conflictedFiles: pair?.conflictedFiles ?? [],
-        },
+        pairs: pairs.map((job) => ({
+          refs: job.branchRefs,
+          classification: job.classification,
+          technicalClassification: job.technicalClassification,
+          conflictedFiles: job.conflictedFiles,
+        })),
       };
 
       if (commandOptions.json === true) {
@@ -61,14 +62,16 @@ export function createProgram(options: ProgramOptions = {}): Command {
       } else {
         process.stdout.write(
           [
-            pc.bold(pc.cyan("BranchMesh vertical-slice demo")),
+            pc.bold(pc.cyan("BranchMesh deterministic scan demo")),
             `Base: ${formatClassification(base?.classification)}`,
             ...branches.map(
               (job) =>
                 `${job.branchRefs[0] ?? "unknown branch"}: ${formatClassification(job.classification)}`,
             ),
-            `Combined: ${formatClassification(pair?.classification)}`,
-            `Technical classification: ${pair?.technicalClassification ?? "none"}`,
+            ...pairs.map(
+              (job) =>
+                `${job.branchRefs.join(" + ")}: ${formatClassification(job.classification)} (${job.technicalClassification ?? "none"})`,
+            ),
             `Result: ${outcome.scan.resultPath}`,
           ].join("\n") + "\n",
         );

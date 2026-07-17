@@ -61,6 +61,7 @@ export class GitClient {
 
     return await new Promise<GitCommandResult>((resolve, reject) => {
       let settled = false;
+      let cancellationRequested = false;
       let abortTimer: ReturnType<typeof setTimeout> | undefined;
 
       const cleanup = (): void => {
@@ -80,6 +81,10 @@ export class GitClient {
       };
 
       const onAbort = (): void => {
+        if (settled || cancellationRequested) {
+          return;
+        }
+        cancellationRequested = true;
         try {
           terminateProcessTree(child.pid, "SIGTERM");
         } catch (error: unknown) {
@@ -89,7 +94,6 @@ export class GitClient {
         abortTimer = setTimeout(() => {
           try {
             terminateProcessTree(child.pid, "SIGKILL");
-            settleReject(createAbortError());
           } catch (error: unknown) {
             settleReject(error instanceof Error ? error : new Error(String(error)));
           }
@@ -103,16 +107,23 @@ export class GitClient {
       }
 
       child.once("error", (error) => {
-        if (options.signal?.aborted !== true) {
-          settleReject(error);
-        }
+        settleReject(cancellationRequested ? createAbortError() : error);
       });
       child.once("close", (exitCode, signal) => {
         if (settled) {
           return;
         }
 
-        if (options.signal?.aborted === true) {
+        if (cancellationRequested) {
+          try {
+            // The Git process has closed. Kill any remaining members of its detached process
+            // group before allowing worktree cleanup to continue.
+            terminateProcessTree(child.pid, "SIGKILL");
+          } catch (error: unknown) {
+            settleReject(error instanceof Error ? error : new Error(String(error)));
+            return;
+          }
+          settleReject(createAbortError());
           return;
         }
 

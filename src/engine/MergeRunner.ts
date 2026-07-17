@@ -88,6 +88,6 @@ export class MergeRunner {
       .split("\0")
       .filter((filePath) => filePath.length > 0)
       .map((filePath) => filePath.split(path.sep).join("/"))
-      .sort((left, right) => left.localeCompare(right, "en"));
+      .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
   }
 }

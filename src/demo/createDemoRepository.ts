@@ -10,6 +10,7 @@ import { isPathInside } from "../utils/paths.js";
 export const DEMO_BASE_REF = "main";
 export const DEMO_BRANCH_A_REF = "feature/config-seconds";
 export const DEMO_BRANCH_B_REF = "feature/jitter";
+export const DEMO_BRANCH_C_REF = "feature/status-output";
 
 const markerFileName = ".branchmesh-demo-owner.json";
 
@@ -25,6 +26,7 @@ export interface DemoRepository {
   readonly baseRef: typeof DEMO_BASE_REF;
   readonly branchARef: typeof DEMO_BRANCH_A_REF;
   readonly branchBRef: typeof DEMO_BRANCH_B_REF;
+  readonly branchCRef: typeof DEMO_BRANCH_C_REF;
   cleanup(): Promise<void>;
 }
 
@@ -163,6 +165,36 @@ export async function createDemoRepository(): Promise<DemoRepository> {
       ["switch", DEMO_BASE_REF],
       "Restore demo repository to base",
     );
+    await runFixtureGit(
+      git,
+      root,
+      repositoryPath,
+      ["switch", "--create", DEMO_BRANCH_C_REF],
+      "Demo Branch C creation",
+    );
+    await writeFixtureFiles(repositoryPath, {
+      "src/status.js": ["export function retryStatus() {", '  return "ready";', "}", ""].join("\n"),
+      "test/status.test.js": [
+        `import assert from "node:assert/strict";`,
+        `import test from "node:test";`,
+        "",
+        `import { retryStatus } from "../src/status.js";`,
+        "",
+        `test("the retry status is ready", () => {`,
+        '  assert.equal(retryStatus(), "ready");',
+        "});",
+        "",
+      ].join("\n"),
+    });
+    await commitAll(git, root, repositoryPath, "Add retry status output", 3);
+
+    await runFixtureGit(
+      git,
+      root,
+      repositoryPath,
+      ["switch", DEMO_BASE_REF],
+      "Restore demo repository to base after Branch C",
+    );
 
     let cleaned = false;
     return {
@@ -171,6 +203,7 @@ export async function createDemoRepository(): Promise<DemoRepository> {
       baseRef: DEMO_BASE_REF,
       branchARef: DEMO_BRANCH_A_REF,
       branchBRef: DEMO_BRANCH_B_REF,
+      branchCRef: DEMO_BRANCH_C_REF,
       cleanup: async () => {
         if (cleaned) {
           return;

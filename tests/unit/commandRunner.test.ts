@@ -18,9 +18,11 @@ describe("CommandRunner", () => {
             label: "Background process test",
             kind: "custom",
             command:
-              "node -e \"setTimeout(() => require('node:fs').writeFileSync('background-marker', 'unexpected'), 500)\" >/dev/null 2>&1 &",
+              "node -e \"setTimeout(() => require('node:fs').writeFileSync('background-marker', 'unexpected'), 500)\" &",
+            timeoutMs: 2_000,
           },
           worktree,
+          { maximumLogBytes: 1024 },
         );
 
         expect(execution.result.status).toBe("passed");
@@ -31,6 +33,60 @@ describe("CommandRunner", () => {
       }
     },
   );
+
+  it("bounds stdout and stderr without losing their total byte counts", async () => {
+    const worktree = await mkdtemp(path.join(os.tmpdir(), "branchmesh-command-test-"));
+    try {
+      const execution = await new CommandRunner().run(
+        {
+          id: "logs",
+          label: "Large logs",
+          kind: "custom",
+          command:
+            "node -e \"process.stdout.write('a'.repeat(10000)); process.stderr.write('b'.repeat(12000))\"",
+          timeoutMs: 2_000,
+        },
+        worktree,
+        { maximumLogBytes: 1024 },
+      );
+
+      expect(execution.result.stdout).toMatchObject({
+        totalBytes: 10_000,
+        capturedBytes: 1024,
+        truncated: true,
+      });
+      expect(execution.result.stderr).toMatchObject({
+        totalBytes: 12_000,
+        capturedBytes: 1024,
+        truncated: true,
+      });
+    } finally {
+      await rm(worktree, { recursive: true });
+    }
+  });
+
+  it("times out and terminates a command process tree", async () => {
+    const worktree = await mkdtemp(path.join(os.tmpdir(), "branchmesh-command-test-"));
+    try {
+      const execution = await new CommandRunner().run(
+        {
+          id: "timeout",
+          label: "Timeout",
+          kind: "custom",
+          command: 'node -e "setTimeout(() => {}, 10000)"',
+          timeoutMs: 50,
+        },
+        worktree,
+        { maximumLogBytes: 1024, terminationGraceMs: 20 },
+      );
+
+      expect(execution.result.status).toBe("timed_out");
+      expect(execution.result.timedOut).toBe(true);
+      expect(execution.result.durationMs).toBeLessThan(2_000);
+    } finally {
+      await rm(worktree, { recursive: true });
+    }
+  });
 });
 
 async function pathExists(candidate: string): Promise<boolean> {

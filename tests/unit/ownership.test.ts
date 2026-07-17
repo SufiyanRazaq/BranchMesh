@@ -13,10 +13,10 @@ describe("execution ownership", () => {
         root: path.join(os.tmpdir(), "example-repository"),
         commonGitDirectory: path.join(os.tmpdir(), "example-repository", ".git"),
       },
-      base: { ref: "main", sha: "a".repeat(40) },
+      base: snapshot("main", "a", "refs/heads/main"),
       branches: [
-        { ref: "feature/a", sha: "b".repeat(40) },
-        { ref: "feature/b", sha: "c".repeat(40) },
+        snapshot("feature/a", "b", "refs/heads/feature/a"),
+        snapshot("feature/b", "c", "refs/heads/feature/b"),
       ],
     });
     const markerPath = path.join(ownership.root, ".branchmesh-owner.json");
@@ -55,4 +55,15 @@ async function pathExists(candidate: string): Promise<boolean> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function snapshot(ref: string, shaCharacter: string, fullRef: string) {
+  return {
+    ref,
+    fullRef,
+    sha: shaCharacter.repeat(40),
+    changedFiles: [],
+    dirty: false,
+    worktreePath: null,
+  };
 }

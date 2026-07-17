@@ -31,32 +31,44 @@ try {
   assert.equal(evidence.base, "BASE_PASS");
   assert.deepEqual(
     evidence.branches.map((branch) => branch.classification),
-    ["BRANCH_PASS", "BRANCH_PASS"],
+    ["BRANCH_PASS", "BRANCH_PASS", "BRANCH_PASS"],
   );
-  assert.equal(evidence.pair.classification, "BEHAVIORAL_CONFLICT");
-  assert.equal(evidence.pair.technicalClassification, "PAIR_TEST_FAILURE");
-  assert.deepEqual(evidence.pair.conflictedFiles, []);
+  assert.deepEqual(
+    evidence.pairs.map((pair) => [pair.refs, pair.classification]),
+    [
+      [["feature/config-seconds", "feature/jitter"], "BEHAVIORAL_CONFLICT"],
+      [["feature/config-seconds", "feature/status-output"], "NO_DETECTED_CONFLICT"],
+      [["feature/jitter", "feature/status-output"], "NO_DETECTED_CONFLICT"],
+    ],
+  );
+  assert.equal(evidence.pairs[0].technicalClassification, "PAIR_TEST_FAILURE");
+  assert.deepEqual(evidence.pairs[0].conflictedFiles, []);
 
   const result = JSON.parse(await readFile(evidence.resultPath, "utf8"));
   const baseJob = result.jobs.find((job) => job.kind === "base");
   const branchJobs = result.jobs.filter((job) => job.kind === "branch");
-  const pairJob = result.jobs.find((job) => job.kind === "pair");
+  const pairJobs = result.jobs.filter((job) => job.kind === "pair");
   assert.equal(result.schemaVersion, 1);
   assert.equal(result.exitCode, 1);
   assert.equal(baseJob.classification, "BASE_PASS");
   assert.equal(baseJob.commands[0].status, "passed");
   assert.deepEqual(
     branchJobs.map((job) => job.classification),
-    ["BRANCH_PASS", "BRANCH_PASS"],
+    ["BRANCH_PASS", "BRANCH_PASS", "BRANCH_PASS"],
   );
   assert.deepEqual(
     branchJobs.map((job) => job.commands[0].status),
-    ["passed", "passed"],
+    ["passed", "passed", "passed"],
   );
-  assert.equal(pairJob.classification, "BEHAVIORAL_CONFLICT");
-  assert.equal(pairJob.technicalClassification, "PAIR_TEST_FAILURE");
-  assert.equal(pairJob.commands[0].status, "failed");
-  assert.deepEqual(pairJob.conflictedFiles, []);
+  assert.deepEqual(
+    pairJobs.map((job) => job.classification),
+    ["BEHAVIORAL_CONFLICT", "NO_DETECTED_CONFLICT", "NO_DETECTED_CONFLICT"],
+  );
+  assert.equal(pairJobs[0].technicalClassification, "PAIR_TEST_FAILURE");
+  assert.equal(pairJobs[0].commands[0].status, "failed");
+  assert.deepEqual(pairJobs[0].conflictedFiles, []);
+  assert.equal(result.summary.branchCount, 3);
+  assert.equal(result.summary.pairCount, 3);
   assert.equal(result.summary.behavioralConflicts, 1);
   assert.equal(result.summary.textualConflicts, 0);
   assert.equal(await pathExists(evidence.executionRoot), false);
@@ -75,8 +87,8 @@ try {
       "BranchMesh demo verification passed.",
       "Actual scan exit code: 1 (expected incompatibility)",
       "Base: BASE_PASS",
-      "Branches: BRANCH_PASS, BRANCH_PASS",
-      "Pair: BEHAVIORAL_CONFLICT (PAIR_TEST_FAILURE)",
+      "Branches: BRANCH_PASS, BRANCH_PASS, BRANCH_PASS",
+      "Pairs: 1 BEHAVIORAL_CONFLICT (PAIR_TEST_FAILURE), 2 NO_DETECTED_CONFLICT",
       "Textual conflicts: 0",
       "Temporary worktrees remaining: 0",
       "Project repository unchanged: yes",

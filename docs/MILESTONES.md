@@ -45,14 +45,14 @@ the expected incompatibility; `npm run demo:verify` exits `0` only after validat
 `BEHAVIORAL_CONFLICT`, `PAIR_TEST_FAILURE`, no textual conflict, unchanged repository state, and
 zero remaining temporary worktrees.
 
-Milestone boundary:
+Historical Milestone 1 boundary (superseded by the Milestone 2 implementation below):
 
 - The implementation accepts exactly two branches and one validation command.
 - It is deliberately serial and is not the complete scanner or CLI suite.
 - Timeouts, full preflight, bounded concurrency, durable logs, recovery, and HTML remain in later
   milestones.
 
-## Milestone 2 — Not started: Complete scanning engine
+## Milestone 2 — Implemented; acceptance pending: Complete scanning engine
 
 Deliverables:
 
@@ -65,6 +65,34 @@ Acceptance gate:
 
 - Deterministic complete result graph and correct exit codes for every supported outcome.
 - No UI assumptions inside engine, Git, or classification modules.
+
+Implementation evidence on 2026-07-17:
+
+- Preflight validates Node.js 20+, Git 2.31+, supported platforms, canonical repository and common
+  Git-directory identity, porcelain-`-z` worktrees, selected-worktree dirt, temporary storage,
+  immutable refs, changed files, and unsupported submodule or Git LFS trees.
+- The strict configuration contract defaults to five branches and concurrency two. The planner
+  stores branches and every unique pair in canonical reference order.
+- Base, branch, and eligible pair jobs run setup plus validation commands sequentially in fresh
+  owned worktrees. Commands stop after their first failure; logs are bounded; timeouts and root
+  cancellation terminate process groups before cleanup.
+- Every ineligible pair is retained as `PAIR_SKIPPED`. Pair command failures use
+  `BEHAVIORAL_CONFLICT` with a matching technical classification.
+- The serial implementation passed its cleanup gate before bounded concurrency was enabled.
+  Concurrent results are assembled by plan index, so completion timing cannot reorder output.
+- JSON is Zod-validated before atomic publication outside every discovered repository worktree.
+  Success, incompatibility, invalid-base, timeout, cancellation, report-publication, and partial
+  cleanup paths are covered by tests that verify no BranchMesh worktree registration remains.
+- The three-branch demo emits three branch jobs and three pair results. Its expected A+B
+  behavioral incompatibility produces scan exit `1`, while the verification harness exits `0`.
+
+Milestone boundary:
+
+- This milestone exposes the complete engine through the existing deterministic demo surface;
+  the full command suite remains Milestone 5.
+- Durable raw-log layout and HTML are Milestone 4. Crash recovery and the complete adversarial Git
+  matrix remain Milestone 3.
+- Milestone 3 has not started, and Milestone 2 has not been committed.
 
 ## Milestone 3 — Not started: Safety and correctness gate
 

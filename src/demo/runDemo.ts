@@ -1,9 +1,10 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 
-import type { VerticalSliceConfig } from "../config/schema.js";
-import { runVerticalSlice, type VerticalSliceOutcome } from "../engine/runVerticalSlice.js";
+import { parseScanConfig } from "../config/schema.js";
+import { runScan, type ScanOutcome } from "../engine/runScan.js";
 import { assertGitSuccess, GitClient } from "../git/GitClient.js";
+import { parseWorktreePorcelainZ } from "../git/WorktreeParser.js";
 import { createDemoRepository } from "./createDemoRepository.js";
 
 export interface DemoOptions {
@@ -13,25 +14,27 @@ export interface DemoOptions {
 }
 
 export interface DemoOutcome {
-  readonly scan: VerticalSliceOutcome;
+  readonly scan: ScanOutcome;
   readonly demoRoot: string;
   readonly demoRepository: string;
   readonly repositoryUnchanged: true;
   readonly temporaryWorktreesRemaining: 0;
 }
 
-const demoConfig: VerticalSliceConfig = {
+const demoConfig = parseScanConfig({
   base: "main",
-  branches: ["feature/config-seconds", "feature/jitter"],
+  // Deliberately unsorted to prove that the engine canonicalizes branch and pair order.
+  branches: ["feature/status-output", "feature/jitter", "feature/config-seconds"],
   commands: [
     {
       id: "test",
       label: "Tests",
       kind: "test",
       command: "node --test",
+      timeoutMs: 30_000,
     },
   ],
-};
+});
 
 export async function runDemo(options: DemoOptions): Promise<DemoOutcome> {
   const demo = await createDemoRepository();
@@ -39,7 +42,7 @@ export async function runDemo(options: DemoOptions): Promise<DemoOutcome> {
 
   try {
     const stateBefore = await captureRepositoryState(git, demo.root, demo.repositoryPath);
-    const scan = await runVerticalSlice({
+    const scan = await runScan({
       repositoryPath: demo.repositoryPath,
       config: demoConfig,
       toolVersion: options.toolVersion,
@@ -83,9 +86,12 @@ async function captureRepositoryState(
   repositoryPath: string,
 ): Promise<string> {
   const commands = [
+    ["-C", repositoryPath, "symbolic-ref", "--quiet", "--short", "HEAD"],
     ["-C", repositoryPath, "rev-parse", "HEAD"],
+    ["-C", repositoryPath, "write-tree"],
     ["-C", repositoryPath, "status", "--porcelain=v1", "--untracked-files=all"],
     ["-C", repositoryPath, "for-each-ref", "--format=%(refname)%00%(objectname)", "refs/heads"],
+    ["-C", repositoryPath, "worktree", "list", "--porcelain", "-z"],
   ] as const;
   const output: string[] = [];
   for (const args of commands) {
@@ -108,10 +114,7 @@ async function listWorktrees(
     }),
     "Demo worktree verification",
   );
-  return result.stdout
-    .split("\u0000")
-    .filter((field) => field.startsWith("worktree "))
-    .map((field) => field.slice("worktree ".length));
+  return parseWorktreePorcelainZ(result.stdout).map((worktree) => worktree.path);
 }
 
 async function pathExists(candidate: string): Promise<boolean> {

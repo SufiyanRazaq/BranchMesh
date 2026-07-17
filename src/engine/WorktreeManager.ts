@@ -1,9 +1,10 @@
-import { mkdir, rm } from "node:fs/promises";
+import { lstat, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 
 import { assertGitSuccess } from "../git/GitClient.js";
 import type { GitClient } from "../git/GitClient.js";
 import type { RepositoryIdentity } from "../git/RepositoryInspector.js";
+import { parseWorktreePorcelainZ } from "../git/WorktreeParser.js";
 import { isPathInside } from "../utils/paths.js";
 import type { ExecutionOwnership } from "./ownership.js";
 
@@ -66,10 +67,10 @@ export class WorktreeManager {
     }
 
     await this.#ownership.verify();
-    await this.#ownership.assertOwnedPath(record.path);
 
     const registeredPaths = await this.listRepositoryWorktrees();
     if (registeredPaths.includes(record.path)) {
+      await this.#ownership.assertOwnedPath(record.path);
       const removal = await this.#git.run(
         [
           "--git-dir",
@@ -90,8 +91,10 @@ export class WorktreeManager {
     }
 
     const jobDirectory = path.dirname(record.path);
-    await this.#ownership.assertOwnedPath(jobDirectory);
-    await rm(jobDirectory, { recursive: true });
+    if (await pathExists(jobDirectory)) {
+      await this.#ownership.assertOwnedPath(jobDirectory);
+      await rm(jobDirectory, { recursive: true });
+    }
     await this.#ownership.updateWorktreeState(jobId, "removed");
   }
 
@@ -133,9 +136,18 @@ export class WorktreeManager {
       "Git worktree enumeration",
     );
 
-    return result.stdout
-      .split("\0")
-      .filter((field) => field.startsWith("worktree "))
-      .map((field) => path.resolve(field.slice("worktree ".length)));
+    return parseWorktreePorcelainZ(result.stdout).map((worktree) => path.resolve(worktree.path));
+  }
+}
+
+async function pathExists(candidate: string): Promise<boolean> {
+  try {
+    await lstat(candidate);
+    return true;
+  } catch (error: unknown) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return false;
+    }
+    throw error;
   }
 }

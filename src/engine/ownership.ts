@@ -44,7 +44,7 @@ const RunManifestSchema = z.strictObject({
   repositoryRoot: z.string().min(1),
   commonGitDirectory: z.string().min(1),
   base: BranchSnapshotSchema,
-  branches: z.tuple([BranchSnapshotSchema, BranchSnapshotSchema]),
+  branches: z.array(BranchSnapshotSchema).min(2).max(5),
   worktrees: z.array(WorktreeRecordSchema),
 });
 
@@ -56,7 +56,7 @@ export interface ExecutionOwnershipOptions {
   readonly runId: string;
   readonly repository: RepositoryIdentity;
   readonly base: BranchSnapshot;
-  readonly branches: readonly [BranchSnapshot, BranchSnapshot];
+  readonly branches: readonly BranchSnapshot[];
 }
 
 export class ExecutionOwnership {
@@ -66,6 +66,7 @@ export class ExecutionOwnership {
 
   readonly #marker: OwnershipMarker;
   #manifest: RunManifest;
+  #mutationTail: Promise<void> = Promise.resolve();
 
   private constructor(root: string, marker: OwnershipMarker, manifest: RunManifest) {
     this.root = root;
@@ -96,7 +97,7 @@ export class ExecutionOwnership {
         repositoryRoot: options.repository.root,
         commonGitDirectory: options.repository.commonGitDirectory,
         base: options.base,
-        branches: options.branches,
+        branches: [...options.branches],
         worktrees: [],
       });
 
@@ -104,7 +105,7 @@ export class ExecutionOwnership {
       await mkdir(ownership.hooksDirectory, { mode: 0o700 });
       await mkdir(ownership.worktreesDirectory, { mode: 0o700 });
       await writeJsonAtomically(path.join(root, markerFileName), marker);
-      await ownership.#persistManifest();
+      await ownership.#persistManifest(manifest);
       return ownership;
     } catch (error: unknown) {
       await removeFailedInitialization(root);
@@ -117,34 +118,31 @@ export class ExecutionOwnership {
   }
 
   public async registerWorktree(jobId: string, worktreePath: string): Promise<void> {
-    await this.verify();
-    await this.assertOwnedPath(worktreePath);
-
-    if (this.#manifest.worktrees.some((record) => record.jobId === jobId)) {
-      throw new Error(`Worktree job ${jobId} is already registered`);
-    }
-
-    this.#manifest = RunManifestSchema.parse({
-      ...this.#manifest,
-      worktrees: [...this.#manifest.worktrees, { jobId, path: worktreePath, state: "planned" }],
+    await this.#mutateManifest(async (manifest) => {
+      await this.assertOwnedPath(worktreePath);
+      if (manifest.worktrees.some((record) => record.jobId === jobId)) {
+        throw new Error(`Worktree job ${jobId} is already registered`);
+      }
+      return RunManifestSchema.parse({
+        ...manifest,
+        worktrees: [...manifest.worktrees, { jobId, path: worktreePath, state: "planned" }],
+      });
     });
-    await this.#persistManifest();
   }
 
   public async updateWorktreeState(jobId: string, state: WorktreeRecord["state"]): Promise<void> {
-    await this.verify();
-    const index = this.#manifest.worktrees.findIndex((record) => record.jobId === jobId);
-    if (index === -1) {
-      throw new Error(`Worktree job ${jobId} is not registered`);
-    }
-
-    this.#manifest = RunManifestSchema.parse({
-      ...this.#manifest,
-      worktrees: this.#manifest.worktrees.map((record, recordIndex) =>
-        recordIndex === index ? { ...record, state } : record,
-      ),
+    await this.#mutateManifest((manifest) => {
+      const index = manifest.worktrees.findIndex((record) => record.jobId === jobId);
+      if (index === -1) {
+        throw new Error(`Worktree job ${jobId} is not registered`);
+      }
+      return RunManifestSchema.parse({
+        ...manifest,
+        worktrees: manifest.worktrees.map((record, recordIndex) =>
+          recordIndex === index ? { ...record, state } : record,
+        ),
+      });
     });
-    await this.#persistManifest();
   }
 
   public findWorktree(jobId: string): WorktreeRecord | undefined {
@@ -152,6 +150,10 @@ export class ExecutionOwnership {
   }
 
   public async verify(): Promise<void> {
+    await this.#readVerifiedManifest();
+  }
+
+  async #readVerifiedManifest(): Promise<RunManifest> {
     const actualRoot = await realpath(this.root);
     if (actualRoot !== this.root) {
       throw new Error("Execution root identity changed");
@@ -183,7 +185,9 @@ export class ExecutionOwnership {
       }
     }
 
-    this.#manifest = manifest;
+    // Verification is deliberately read-only. Manifest mutations are serialized, and replacing
+    // in-memory state here could roll it back when a concurrent verification read an older file.
+    return manifest;
   }
 
   public async assertOwnedPath(candidate: string): Promise<void> {
@@ -226,8 +230,21 @@ export class ExecutionOwnership {
     await rm(this.root, { recursive: true });
   }
 
-  async #persistManifest(): Promise<void> {
-    await writeJsonAtomically(path.join(this.root, manifestFileName), this.#manifest);
+  async #mutateManifest(
+    mutation: (manifest: RunManifest) => RunManifest | Promise<RunManifest>,
+  ): Promise<void> {
+    const run = this.#mutationTail.then(async () => {
+      const manifest = await this.#readVerifiedManifest();
+      const nextManifest = await mutation(manifest);
+      await this.#persistManifest(nextManifest);
+      this.#manifest = nextManifest;
+    });
+    this.#mutationTail = run.catch(() => undefined);
+    await run;
+  }
+
+  async #persistManifest(manifest: RunManifest): Promise<void> {
+    await writeJsonAtomically(path.join(this.root, manifestFileName), manifest);
   }
 }
 
