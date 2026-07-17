@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { BRANCHMESH_VERSION, createProgram } from "../../src/index.js";
 
-describe("placeholder CLI", () => {
-  it("exposes the BranchMesh identity without implementing product commands", () => {
+describe("Milestone 1 CLI", () => {
+  it("exposes only the vertical-slice demo command", () => {
     const program = createProgram();
 
     expect(program.name()).toBe("branchmesh");
     expect(program.version()).toBe(BRANCHMESH_VERSION);
-    expect(program.commands).toHaveLength(0);
+    expect(program.commands.map((command) => command.name())).toEqual(["demo"]);
   });
 });

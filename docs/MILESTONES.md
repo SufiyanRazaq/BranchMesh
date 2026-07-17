@@ -24,7 +24,7 @@ Acceptance gate:
 
 Completed on 2026-07-17. All foundation checks pass with no Milestone 1 implementation present.
 
-## Milestone 1 — Not started: End-to-end vertical slice
+## Milestone 1 — Complete: End-to-end vertical slice
 
 Deliverables:
 
@@ -38,6 +38,19 @@ Acceptance gate:
 - The deterministic demo proves A pass, B pass, and A+B behavioral conflict.
 - The scanned repository's HEAD, index, status, refs, and existing worktrees are unchanged.
 - Typecheck, tests, build, and the demo pass.
+
+Completed on 2026-07-17. The fixed serial path validates the snapshotted base, each of two
+branches, and their canonical pair in separate owned worktrees. The real demo scan exits `1` for
+the expected incompatibility; `npm run demo:verify` exits `0` only after validating
+`BEHAVIORAL_CONFLICT`, `PAIR_TEST_FAILURE`, no textual conflict, unchanged repository state, and
+zero remaining temporary worktrees.
+
+Milestone boundary:
+
+- The implementation accepts exactly two branches and one validation command.
+- It is deliberately serial and is not the complete scanner or CLI suite.
+- Timeouts, full preflight, bounded concurrency, durable logs, recovery, and HTML remain in later
+  milestones.
 
 ## Milestone 2 — Not started: Complete scanning engine
 

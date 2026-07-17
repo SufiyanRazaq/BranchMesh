@@ -13,12 +13,14 @@
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint src tests tsup.config.ts vitest.config.ts --max-warnings 0",
+    "lint": "eslint src tests scripts tsup.config.ts vitest.config.ts --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "tsup",
-    "demo": "node dist/cli.js",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run demo"
+    "demo": "npm run build --silent && npm run demo:verify",
+    "demo:scan": "node dist/cli.js demo",
+    "demo:verify": "node scripts/verify-demo.mjs",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run demo:verify"
   },
   "dependencies": {
     "commander": "^14.0.3",
