@@ -1,0 +1,38 @@
+{
+  "name": "branchmesh",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Detect Git branches that pass independently but fail when combined.",
+  "type": "module",
+  "bin": {
+    "branchmesh": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint src tests tsup.config.ts vitest.config.ts --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsup",
+    "demo": "node dist/cli.js",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run demo"
+  },
+  "dependencies": {
+    "commander": "^14.0.3",
+    "picocolors": "^1.1.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^20.19.43",
+    "eslint": "^9.39.5",
+    "prettier": "^3.9.5",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.64.0",
+    "vitest": "^4.1.10"
+  }
+}

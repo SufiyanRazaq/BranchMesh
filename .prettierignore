@@ -1,0 +1,6 @@
+node_modules/
+dist/
+coverage/
+package-lock.json
+docs/BRANCHMESH_PRODUCT_PLAN.md
+docs/CODEX_DEVELOPMENT_WORKFLOW.md
