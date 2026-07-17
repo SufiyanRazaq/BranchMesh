@@ -42,6 +42,18 @@ describe("complete CLI boundary", () => {
     }
   });
 
+  it("exposes a negative dirty override for the safety-preserving skill workflow", () => {
+    const doctor = createProgram().commands.find((command) => command.name() === "doctor");
+    const scan = createProgram().commands.find((command) => command.name() === "scan");
+
+    expect(doctor?.options.some((option) => option.long === "--no-ignore-dirty")).toBe(true);
+    expect(scan?.options.some((option) => option.long === "--no-ignore-dirty")).toBe(true);
+    doctor?.parseOptions(["--no-ignore-dirty"]);
+    scan?.parseOptions(["--no-ignore-dirty"]);
+    expect(doctor?.opts()).toMatchObject({ ignoreDirty: false });
+    expect(scan?.opts()).toMatchObject({ ignoreDirty: false });
+  });
+
   it("maps configuration and interruption failures without using exit code 1", () => {
     expect(cliErrorExitCode(new ConfigurationError("bad config"))).toBe(2);
     expect(cliErrorExitCode(createAbortError())).toBe(130);

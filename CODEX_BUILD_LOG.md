@@ -348,7 +348,7 @@ Repository actions:
 
 ## 2026-07-17 — Milestone 5 complete CLI
 
-- **Status:** Implemented and locally verified; awaiting human acceptance.
+- **Status:** Complete and accepted; committed as `d6017c8`.
 - **Scope:** Complete and harden `init`, `doctor`, `scan`, `demo`, `clean`, and `version`; package
   and install the local CLI. No Codex skill or Milestone 6 work was added.
 
@@ -437,5 +437,135 @@ Remaining work and risks:
 
 Repository actions:
 
-- No commit, push, publication, tag, or release was performed.
-- Milestone 6 and the Codex skill were not started.
+- The accepted implementation is recorded as `d6017c8` with message
+  `feat: complete BranchMesh CLI workflow`.
+- No publication, tag, or release was performed as part of that milestone.
+
+## 2026-07-17 — Milestone 6 Codex skill and core documentation
+
+- **Status:** Implemented and locally verified; awaiting human acceptance.
+- **Scope:** Repository-scoped skill, thin deterministic workflow wrapper, shared compiled
+  contracts, README, and core product documentation. No release or scanning feature work was
+  added.
+
+Codex work:
+
+- Read the complete skill-creator guidance, its `openai.yaml` contract, repository instructions,
+  full approved product plan, product/architecture contracts, decisions, milestones, build log,
+  and development workflow before editing.
+- Used the official skill initializer to create `.agents/skills/branchmesh` with scripts,
+  references, and generated UI metadata, then replaced every placeholder with the approved
+  doctor-first compatibility workflow.
+- Kept the skill intentionally thin: it invokes only the local `dist/cli.js`, never contains Git
+  discovery, worktree, merge, configured-command, classification, cleanup, or report-rendering
+  implementations.
+- Added closed runner selection modes for repeated named branches, active worktrees, or explicit
+  configured selection. The runner rejects ambiguous/mixed/unbounded/comma-ambiguous refs,
+  preserves refs as argv data, supports a target repository/base/output, and never exposes raw CLI
+  argument pass-through.
+- Runs doctor before every normal scan with the same selection policy. It rejects explicit
+  `--ignore-dirty` and passes `--no-ignore-dirty` to both CLI processes, so both phases require
+  clean selected worktrees even if the checked-in config enables the broader CLI opt-in.
+- Added `src/contracts.ts` as a narrow tsup entry exporting only `ScanConfigSchema` and
+  `RunResultSchema`. The Node 20 skill runner dynamically imports that compiled entry, opens result
+  files as regular no-follow files, and uses the real strict Zod contract instead of a duplicated
+  consumer schema. Both doctor and scan receive the explicit `--no-ignore-dirty` override.
+- Revalidates published path redaction, null worktree paths, clean snapshots, explicit base/branch
+  provenance, full SHAs, child/result exit agreement, and the JSON/HTML/log bundle. Its stdout is a
+  bounded JSON envelope with retained report paths, job evidence, and short redacted failed-command
+  excerpts; potentially large log text remains in the exact redacted result for deliberate
+  inspection.
+- Preserves actual completed scan exit `0`, `1`, or result-bearing `3` in `scanExitCode` while the
+  wrapper returns `0` after successful revalidation. Missing result evidence fails closed as
+  infrastructure error. SIGINT/SIGTERM are forwarded to the active child, interruption is checked
+  at every wrapper-owned validation/publication boundary, and cleanup is awaited.
+- Added a deterministic skill-demo verifier that expects the production demo's real exit `1`,
+  checks all accepted classifications plus unchanged-state/zero-worktree evidence, and removes
+  only its token-marked exact temporary verification root after canonical containment and marker
+  validation.
+- Added README and dedicated architecture, safety, configuration, CLI, classification, supported
+  platform, limitations, troubleshooting, and judge-testing guides. Documentation states shipped
+  behavior only, distinguishes harness/direct-demo exits, and leaves license/release artifacts as
+  explicit final-release work.
+- Reconciled the accepted Milestone 5 commit in the milestone/build histories and recorded the
+  skill execution/trust decisions in `DECISIONS.md`.
+
+Skill safety and interpretation behavior:
+
+- Trigger metadata covers active Git/Codex/agent worktrees, parallel branches, branch
+  compatibility, and hidden integration failures while excluding ordinary single-branch tests,
+  remote PR analysis, uncommitted snapshots, and automatic fixes.
+- The workflow resolves ambiguity before selection, retains the configured base unless the user
+  names one, refuses dirt/ownership workarounds, never invokes init/clean/open/installers, and never
+  downloads a substitute CLI.
+- Branch names, changed files, configured commands, and logs are explicitly untrusted evidence.
+  Prompt-like log content is quoted, not followed. The skill never uploads artifacts, browses for
+  explanations, calls an external service, or modifies code without a separate user request.
+- Explanations include base and branch names/full SHAs, individual and pair classifications, merge
+  order, failed command/exit/timeout/duration, concise redacted evidence, conflicted files,
+  truncation state, and JSON/HTML locations.
+- Passing pairs use “No detected conflict under the configured commands” and always state the
+  committed-tip/configured-command/pairwise/single-order limitations.
+
+Tests and forward validation:
+
+- Added skill discovery tests for required resource paths, exact minimal frontmatter keys, trigger
+  terms, generated UI metadata, safety language, reference taxonomy, and removal of initializer
+  placeholders.
+- Added syntax/static process-boundary tests proving the wrapper uses the local CLI/contracts,
+  `spawn` with `shell: false`, and no fetch/http/net/dns/curl/wget/npx, internal merge, or worktree
+  implementation.
+- Added runner tests for exact selection mode, 2–5 named refs, duplicates, base overlap,
+  comma-ambiguous refs, hostile ref preservation, explicit dirt-bypass refusal, and bounded
+  envelopes containing full refs/SHAs, classifications, failed command, retained report paths, and
+  capped redacted evidence excerpts.
+- A final-review regression first failed because the wrapper's one-time config rejection left a
+  race: the config could enable `ignoreDirty` after doctor and before scan. Added a paired
+  Commander `--no-ignore-dirty` override and made the wrapper pass it to both processes. The
+  default/positive CLI behavior is unchanged, and the regression proves the safety override is
+  available and used.
+- Added documentation tests that check every required guide, local README links, absence of
+  personal paths/placeholders, JSON examples against `ScanConfigSchema`, and every stable
+  classification against the production enum schemas.
+- An independent fresh-context Codex forward test followed the skill and ran the deterministic
+  demo. It correctly explained `BASE_PASS`, three full-SHA `BRANCH_PASS` jobs, one clean-merge
+  `BEHAVIORAL_CONFLICT` with `PAIR_TEST_FAILURE`, the failed `node --test` assertion, two “No
+  detected conflict” pairs, zero skips/conflicted files, report locations, and limitations without
+  modifying source. Its isolated report directory was verified and removed afterward.
+- The skill-creator `quick_validate.py` helper was invoked, but the host Python stopped before
+  reading the skill because its `yaml` import is unavailable. No package or host dependency was
+  installed. Repository discovery-layout/frontmatter tests cover the helper's structural checks,
+  and a path-directed independent forward invocation passed; actual host discovery and the official
+  helper with PyYAML remain release-time checks.
+
+Verification:
+
+- `npm run format:check` — passed across the repository and protected skill files.
+- `npm run lint` — passed with zero warnings, including the skill's `.mjs` wrapper.
+- `npm run typecheck` — passed under strict TypeScript.
+- `npm test` — passed, 116 tests across 30 files.
+- `npm run build` — passed with executable CLI output plus the shared contracts ESM/declaration
+  entry.
+- `npm run demo:verify` — passed; actual scan exit `1`, accepted hidden conflict, validated offline
+  report/logs, unchanged project repository, and zero temporary worktrees.
+- `npm run skill:verify` — passed; actual scan exit `1` was preserved in a schema-validated bounded
+  envelope with every full demo SHA/classification and the ephemeral owned report was removed.
+- `npm run verify` — passed end to end with both demo verifiers.
+
+Remaining work and risks:
+
+- Linux and WSL release-matrix runs remain pending; this session ran on macOS. Native Windows,
+  submodules, and Git LFS remain intentionally unsupported.
+- The normal wrapper reads the exact absolute `JSON:` path emitted by its own trusted human scan
+  summary when no explicit output is supplied; it never reads `latest`. A future machine-readable
+  scan envelope could remove this small presentation coupling without changing scan behavior.
+- The skill is repository-scoped and present in a Git checkout; the package allowlist still ships
+  only compiled `dist`, so linking/installing the CLI alone does not install the skill elsewhere.
+- Manual browser/screen-reader/print review, release archives/prebuilt output, sample reports,
+  screenshots, public URLs, license selection, Linux/WSL runs, and submission evidence remain
+  Milestone 7.
+
+Repository actions:
+
+- No commit, push, publication, tag, or release was performed for Milestone 6.
+- Milestone 7 was not started.

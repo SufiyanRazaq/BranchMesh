@@ -261,7 +261,8 @@ function addSelectionOptions(command: Command): void {
     .option("--base <ref>", "override the configured base reference")
     .option("--branches <refs>", "comma-separated local branches", parseBranchList)
     .option("--worktrees", "select matching branches checked out in active worktrees")
-    .option("--ignore-dirty", "allow selected active worktrees to be dirty");
+    .option("--ignore-dirty", "allow selected active worktrees to be dirty")
+    .option("--no-ignore-dirty", "require selected active worktrees to be clean");
 }
 
 function parseBranchList(value: string): readonly string[] {

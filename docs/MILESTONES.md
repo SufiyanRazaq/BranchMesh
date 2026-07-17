@@ -163,8 +163,9 @@ Implementation evidence on 2026-07-17:
   published under run-relative `logs/` paths. Every destination file is completed before an
   atomic link or rename makes it visible.
 - Persistent `result.json` is Zod-validated with repository roots and selected worktree paths
-  removed. The HTML embeds a second, stricter Zod-validated projection that omits all repository
-  and worktree path fields and redacts environment values from commands and evidence.
+  removed. The HTML embeds a second, stricter Zod-validated projection that omits those path fields
+  and any environment map; evidence sanitization targets ANSI controls plus sensitive-name and
+  sufficiently long inherited environment values.
 - Added a framework-free, self-contained report with summary cards, an accessible matrix, branch
   snapshots, evidence drawer, classifications, commands, durations, exit details, bounded stdout
   and stderr, reproduction steps, full captured SHAs, limitations, responsive layout, and print
@@ -192,7 +193,7 @@ Milestone boundary:
 - Milestone 4 was approved and committed as `df22df4` with message
   `feat: generate offline compatibility report`.
 
-## Milestone 5 — Implemented; acceptance pending: CLI completeness
+## Milestone 5 — Complete and accepted: CLI completeness
 
 Deliverables:
 
@@ -249,10 +250,11 @@ Verification evidence:
 Milestone boundary:
 
 - No Codex skill, caching, remote integration, new combination semantics, or product-output UI was
-  added. Milestone 6 has not started.
-- Milestone 5 is not committed, pushed, tagged, published, or otherwise released.
+  added in Milestone 5.
+- The accepted implementation was committed as `d6017c8` with message
+  `feat: complete BranchMesh CLI workflow`.
 
-## Milestone 6 — Not started: Codex skill and documentation
+## Milestone 6 — Implemented; acceptance pending: Codex skill and documentation
 
 Deliverables:
 
@@ -263,6 +265,61 @@ Acceptance gate:
 
 - Codex can invoke BranchMesh, validate the result, explain evidence, and avoid absolute safety
   claims without modifying code unless asked.
+
+Implementation evidence on 2026-07-17:
+
+- Added the repository-scoped `.agents/skills/branchmesh` package with minimal trigger metadata,
+  generated `agents/openai.yaml`, a doctor-first workflow, focused classification/troubleshooting
+  references, and one local Node wrapper.
+- The wrapper has a closed selection interface for two-to-five named refs, active worktrees, or an
+  explicitly accepted configured selection. It resolves the local compiled CLI relative to the
+  skill, uses argv arrays with `shell: false`, rejects `--ignore-dirty`, and passes
+  `--no-ignore-dirty` to both CLI children so config cannot weaken the skill's clean-worktree rule.
+  It forwards interruption and never invokes init, clean, open, a package installer, or a network
+  service.
+- Added a narrow `dist/contracts.js` build entry exporting the production config and result Zod
+  schemas. The skill reads only the exact result path from its invocation, checks published
+  redaction, requested ref/SHA provenance and process/result exit agreement, and emits a bounded
+  evidence envelope rather than duplicating the scanning engine or result contract.
+- Skill instructions treat branch/file/command/log text as untrusted evidence, require ambiguity
+  resolution and doctor success, explain full captured SHAs and failed commands, use “No detected
+  conflict under the configured commands,” and prohibit fixes without a separate request.
+- Added a complete README plus architecture, safety, configuration, CLI, classification, supported
+  platform, limitation, troubleshooting, and judge-testing guides. Documentation examples and
+  classification coverage are checked against the live Zod contracts.
+- Reconciled the accepted Milestone 5 commit history and expanded the decision/build records while
+  keeping release artifacts and claims out of scope.
+
+Verification evidence:
+
+- Skill discovery/resource/frontmatter, closed selection, syntax, local argv process boundary,
+  bounded envelope, documentation links, config examples, and complete taxonomy tests pass.
+- A final-review regression failed first because checking the config once left a race in which it
+  could enable `ignoreDirty` between doctor and scan. The CLI now accepts an explicit negative
+  override and the wrapper passes it to both processes; the regression passes without changing the
+  default CLI behavior.
+- An independent forward test followed the skill, ran the deterministic production demo, reported
+  full branch SHAs, one clean-merge `BEHAVIORAL_CONFLICT` with `PAIR_TEST_FAILURE`, failed
+  `node --test` evidence, two “No detected conflict” pairs, limitations, and report locations, and
+  made no source edit.
+- `npm run verify` passes end to end: formatting, linting, strict type-checking, 116 tests across 30
+  files, both build entries, the existing demo verifier, and the new skill demo verifier.
+- The skill demo wrapper independently observes actual scan exit `1`, validates schema version 1,
+  three `BRANCH_PASS` jobs, the expected pair classifications/technical classification, unchanged
+  repository evidence, zero temporary worktrees, and ownership-verified removal of its ephemeral
+  acceptance report.
+
+Milestone boundary and remaining verification note:
+
+- No scan-engine scheduling, merge, classification, or report semantic; report UI; cache; remote
+  integration; automatic fix; release archive; checked-in distribution; screenshot; sample
+  report; license; or submission asset was added.
+- The skill-creator `quick_validate.py` tool was invoked, but the host Python stopped before reading
+  the skill because its undeclared `yaml` module is absent. Repository tests cover the same
+  frontmatter/name/description/resource rules, and a path-directed independent forward execution
+  passed; actual host discovery remains a manual judge check. Rerunning the official helper in an
+  environment with PyYAML remains a release check.
+- Milestone 6 is not committed, pushed, tagged, published, or otherwise released.
 
 ## Milestone 7 — Not started: Release and submission verification
 

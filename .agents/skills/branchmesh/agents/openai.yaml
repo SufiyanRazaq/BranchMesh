@@ -1,0 +1,4 @@
+interface:
+  display_name: "BranchMesh"
+  short_description: "Check Git branch and worktree compatibility"
+  default_prompt: "Use $branchmesh to check my active Git worktrees for hidden integration conflicts."

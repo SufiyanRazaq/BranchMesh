@@ -6,7 +6,10 @@ export default defineConfig({
   },
   clean: true,
   dts: true,
-  entry: ["src/cli.ts"],
+  entry: {
+    cli: "src/cli.ts",
+    contracts: "src/contracts.ts",
+  },
   format: ["esm"],
   platform: "node",
   sourcemap: true,
