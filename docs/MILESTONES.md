@@ -52,7 +52,7 @@ Historical Milestone 1 boundary (superseded by the Milestone 2 implementation be
 - Timeouts, full preflight, bounded concurrency, durable logs, recovery, and HTML remain in later
   milestones.
 
-## Milestone 2 — Implemented; acceptance pending: Complete scanning engine
+## Milestone 2 — Complete: Deterministic scanning engine
 
 Deliverables:
 
@@ -66,7 +66,7 @@ Acceptance gate:
 - Deterministic complete result graph and correct exit codes for every supported outcome.
 - No UI assumptions inside engine, Git, or classification modules.
 
-Implementation evidence on 2026-07-17:
+Completed and accepted on 2026-07-17. Implementation evidence:
 
 - Preflight validates Node.js 20+, Git 2.31+, supported platforms, canonical repository and common
   Git-directory identity, porcelain-`-z` worktrees, selected-worktree dirt, temporary storage,
@@ -92,9 +92,10 @@ Milestone boundary:
   the full command suite remains Milestone 5.
 - Durable raw-log layout and HTML are Milestone 4. Crash recovery and the complete adversarial Git
   matrix remain Milestone 3.
-- Milestone 3 has not started, and Milestone 2 has not been committed.
+- The accepted implementation was committed as `c5cd4e6` with message
+  `feat: add deterministic branch scanning engine`.
 
-## Milestone 3 — Not started: Safety and correctness gate
+## Milestone 3 — Implemented; acceptance pending: Safety and correctness gate
 
 Deliverables:
 
@@ -107,6 +108,34 @@ Acceptance gate:
 - Original repositories and user worktrees remain unchanged.
 - No BranchMesh worktree, child process, lock, or recoverable Git metadata remains after success or
   failure.
+
+Implementation evidence on 2026-07-17:
+
+- Added an ownership-marked temporary repository helper. Every adversarial test creates a fresh
+  real Git repository beneath `os.tmpdir()` and deletes only its verified fixture root.
+- Repository snapshots compare the original branch, HEAD, raw index bytes, all refs, porcelain
+  status, tracked and untracked file contents, worktree registrations, and Git worktree
+  administrative entries before and after execution.
+- Covered no conflict, behavioral and textual conflicts, invalid base, individual failures and
+  skipped pairs, every configured command kind, setup failure, timeout, missing executable, and
+  pre-execution infrastructure failure with schema-validated results.
+- Covered dirty selected worktrees, spaces and non-ASCII paths, hostile branch names, a ref moving
+  after snapshot, existing user worktrees, disabled hooks and signing, and independence from global
+  Git identity.
+- Covered repeated interruption, child and grandchild termination, and cleanup after merge,
+  command, timeout, cancellation, and result-publication failures.
+- Covered lexical and symlink containment, missing, corrupt, and mismatched ownership metadata,
+  idempotent cleanup, and the absence of orphaned worktrees or administrative records.
+- A regression first demonstrated that ownership marker and manifest symlinks were accepted. The
+  ownership reader now requires regular files and opens them with `O_NOFOLLOW` before any cleanup.
+- Two consecutive complete Vitest runs passed with 75 tests across 20 files. Final milestone
+  verification remains subject to the acceptance review.
+
+Milestone boundary:
+
+- No report UI, new CLI commands, Codex skill, caching, or other product-output functionality was
+  added.
+- Milestone 4 has not started, and Milestone 3 has not been committed.
 
 ## Milestone 4 — Not started: Product output
 

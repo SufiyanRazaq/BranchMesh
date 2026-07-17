@@ -103,7 +103,7 @@ Repository actions:
 
 ## 2026-07-17 — Milestone 2 deterministic scanning engine
 
-- **Status:** Implemented and locally verified; awaiting human acceptance.
+- **Status:** Complete and approved; committed as `c5cd4e6`.
 - **Scope:** Complete preflight, immutable multi-branch planning, base/individual/pair execution,
   bounded configured-command pipelines, stable classification, bounded concurrency, validated
   JSON, and cleanup. HTML and the complete CLI remain excluded.
@@ -176,5 +176,77 @@ Remaining work and risks:
 
 Repository actions:
 
+- The approved milestone was committed as `c5cd4e6` with message
+  `feat: add deterministic branch scanning engine`.
+- No push, publication, tag, or release was performed.
+
+## 2026-07-17 — Milestone 3 adversarial safety gate
+
+- **Status:** Implemented and locally verified; awaiting human acceptance.
+- **Scope:** Real temporary Git fixtures and adversarial Git, process-tree, ownership, state
+  preservation, and cleanup testing. No product-output or CLI feature work was added.
+
+Codex work:
+
+- Confirmed a clean working tree at accepted Milestone 2 commit `c5cd4e6` and reread the complete
+  product and safety contracts before editing.
+- Added an ownership-marked `TemporaryGitRepository` helper that creates every fixture beneath
+  `os.tmpdir()`, uses fixed per-command commit identity, and deletes only its verified root.
+- Added full repository-state capture for branch, HEAD, raw index bytes, refs, status, tracked and
+  untracked contents, worktree registrations, and Git worktree administrative entries.
+- Added real-repository outcome tests for passing pairs, behavioral and textual conflicts,
+  invalid baseline, individual failures, skipped pairs, setup and every command kind, timeout,
+  missing executable, and pre-execution infrastructure failure.
+- Added adversarial Git tests for dirty selected worktrees, space and non-ASCII paths, hostile
+  branch names, moving refs after snapshot, existing user worktrees, hooks, signing, global Git
+  identity, and preservation of dirty tracked and untracked files under `ignoreDirty`.
+- Added process tests for repeated interruption, child and grandchild termination, cancellation,
+  and atomic result-publication failure, with ownership-verified cleanup evidence.
+- Added ownership tests for lexical and symlink containment, missing, corrupt, and mismatched
+  metadata, recovery after safe refusal, idempotent cleanup, and orphan-free Git administration.
+
+Confirmed defect and regression:
+
+- A regression test first demonstrated that a matching ownership marker or manifest reached
+  through a symlink was accepted.
+- The ownership reader now rejects non-regular and symlinked metadata and opens the file with
+  `O_NOFOLLOW`, closing the substitution window before cleanup trusts its contents.
+- The new regression and adjacent ownership lifecycle suite pass after the fix.
+
+Safety evidence:
+
+- Every new scan test operates only on its own temporary fixture; none runs a mutation command
+  against the BranchMesh repository.
+- Before/after snapshots are exact, including existing user worktrees and administrative entries.
+- Cleanup assertions cover success, textual merge conflict, verification and setup failure,
+  timeout, first and repeated signals, process descendants, ownership refusal and recovery, and
+  report-publication failure.
+- No `branchmesh-run-*` execution root or temporary worktree registration remained after either
+  complete-suite run.
+
+Verification:
+
+- `npm run format:check` — passed.
+- `npm run lint` — passed with zero warnings.
+- `npm run typecheck` — passed under strict TypeScript.
+- `npm test` — passed twice consecutively after the fix, 75 tests across 20 files per run.
+- `npm run build` — passed, including ESM output, source map, and declaration generation.
+- `npm run demo:verify` — passed; the real demo scan exited `1` for the expected incompatibility
+  while the harness verified three passing branches, one behavioral conflict with
+  `PAIR_TEST_FAILURE`, two passing pairs, unchanged project state, and zero temporary worktrees.
+- `npm run verify` — passed end to end and included the second consecutive post-fix 75-test run.
+
+Remaining work and risks:
+
+- The tests ran on macOS in this session. Linux and WSL are supported by design but still require
+  execution in those environments; native Windows remains intentionally unsupported.
+- Process-group termination depends on POSIX process-group semantics, and `O_NOFOLLOW` depends on
+  the supported macOS/Linux/WSL filesystem behavior.
+- Power loss or `SIGKILL` cannot execute in-process `finally` cleanup. A complete orphan-recovery
+  command remains part of the later CLI milestone rather than this test-only milestone.
+- Durable raw logs and offline HTML remain Milestone 4 and were not started.
+
+Repository actions:
+
 - No commit, push, publication, tag, or release was performed.
-- Milestone 3 was not started.
+- Milestone 4 was not started.

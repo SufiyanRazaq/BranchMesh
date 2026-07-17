@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
+import { constants } from "node:fs";
 import {
   chmod,
   lstat,
   mkdir,
   mkdtemp,
-  readFile,
+  open,
   realpath,
   rename,
   rm,
@@ -160,10 +161,14 @@ export class ExecutionOwnership {
     }
 
     const marker = OwnershipMarkerSchema.parse(
-      JSON.parse(await readFile(path.join(this.root, markerFileName), "utf8")),
+      JSON.parse(
+        await readRegularOwnershipFile(path.join(this.root, markerFileName), "ownership marker"),
+      ),
     );
     const manifest = RunManifestSchema.parse(
-      JSON.parse(await readFile(path.join(this.root, manifestFileName), "utf8")),
+      JSON.parse(
+        await readRegularOwnershipFile(path.join(this.root, manifestFileName), "run manifest"),
+      ),
     );
 
     for (const [name, expected, actual] of [
@@ -260,6 +265,36 @@ async function writeJsonAtomically(filePath: string, value: unknown): Promise<vo
   } catch (error: unknown) {
     await rm(temporaryPath, { force: true });
     throw error;
+  }
+}
+
+async function readRegularOwnershipFile(filePath: string, label: string): Promise<string> {
+  const metadata = await lstat(filePath);
+  if (metadata.isSymbolicLink()) {
+    throw new Error(`BranchMesh ${label} may not be a symbolic link`);
+  }
+  if (!metadata.isFile()) {
+    throw new Error(`BranchMesh ${label} must be a regular file`);
+  }
+
+  let handle;
+  try {
+    handle = await open(filePath, constants.O_RDONLY | constants.O_NOFOLLOW);
+  } catch (error: unknown) {
+    if (isNodeError(error) && error.code === "ELOOP") {
+      throw new Error(`BranchMesh ${label} may not be a symbolic link`, { cause: error });
+    }
+    throw error;
+  }
+
+  try {
+    const openedMetadata = await handle.stat();
+    if (!openedMetadata.isFile()) {
+      throw new Error(`BranchMesh ${label} must be a regular file`);
+    }
+    return await handle.readFile("utf8");
+  } finally {
+    await handle.close();
   }
 }
 
