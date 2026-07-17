@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src 'none'; font-src 'none'; frame-src 'none'; img-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>BranchMesh compatibility report</title>
+  <style>
+:root {
+  color-scheme: light dark;
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel-strong: #1f2630;
+  --text: #f0f3f6;
+  --muted: #a7b0bc;
+  --border: #3a4552;
+  --accent: #79c0ff;
+  --pass: #3fb950;
+  --fail: #ff7b72;
+  --warning: #d29922;
+  --skipped: #8b949e;
+  --shadow: 0 16px 40px rgb(0 0 0 / 0.22);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); color: var(--text); line-height: 1.5; }
+body { margin: 0; min-width: 320px; }
+button, code, pre { font: inherit; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+code { overflow-wrap: anywhere; }
+a { color: var(--accent); }
+.skip-link { position: absolute; left: 1rem; top: -5rem; padding: .7rem 1rem; background: var(--text); color: var(--bg); z-index: 10; }
+.skip-link:focus { top: 1rem; }
+.site-header, main, footer { width: min(1180px, calc(100% - 2rem)); margin-inline: auto; }
+.site-header { display: flex; justify-content: space-between; gap: 2rem; padding: 3rem 0 2rem; border-bottom: 1px solid var(--border); }
+h1, h2, h3, h4, h5, p { margin-top: 0; }
+h1 { max-width: 14ch; margin-bottom: .6rem; font-size: clamp(2rem, 6vw, 4.4rem); line-height: .96; letter-spacing: -.045em; }
+h2 { margin-bottom: .5rem; font-size: clamp(1.45rem, 3vw, 2rem); }
+h3 { margin-bottom: .35rem; }
+h4 { margin-top: 1.5rem; margin-bottom: .65rem; }
+h5 { margin-bottom: .35rem; text-transform: uppercase; letter-spacing: .06em; }
+.eyebrow { margin-bottom: .35rem; color: var(--accent); font-size: .76rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.subtitle, .section-note, .log-meta, footer { color: var(--muted); }
+.run-meta { display: flex; flex-direction: column; align-items: flex-end; gap: .35rem; color: var(--muted); text-align: right; }
+main { display: grid; gap: 3.5rem; padding: 3rem 0; }
+.section-heading, .drawer-heading, .job-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.summary-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .8rem; }
+.summary-card { display: flex; min-height: 8.5rem; flex-direction: column; justify-content: space-between; padding: 1rem; border: 1px solid var(--border); border-radius: .8rem; background: var(--panel); }
+.summary-card strong { font-size: 2.4rem; line-height: 1; }
+.summary-card span { color: var(--muted); font-weight: 700; }
+.summary-pass { border-top: 4px solid var(--pass); }
+.summary-fail { border-top: 4px solid var(--fail); }
+.summary-warning { border-top: 4px solid var(--warning); }
+.summary-skipped { border-top: 4px solid var(--skipped); }
+.branch-status-list, .matrix-key, .file-list { margin: 0; padding: 0; list-style: none; }
+.branch-status-list { display: grid; gap: .6rem; }
+.branch-status-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1rem; border: 1px solid var(--border); border-radius: .65rem; background: var(--panel); }
+.branch-status-list li > div { display: flex; min-width: 0; flex-direction: column; }
+.job-link { border: 0; background: transparent; color: inherit; cursor: pointer; }
+.matrix-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: .8rem; background: var(--panel); box-shadow: var(--shadow); }
+.matrix-scroll:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.compatibility-matrix { width: 100%; min-width: 690px; border-collapse: collapse; }
+.compatibility-matrix caption { padding: 1rem; color: var(--muted); text-align: left; }
+.compatibility-matrix th, .compatibility-matrix td { min-width: 8rem; padding: .65rem; border-top: 1px solid var(--border); border-right: 1px solid var(--border); text-align: center; }
+.compatibility-matrix th { min-width: 5.5rem; background: var(--panel-strong); }
+.matrix-cell { display: grid; width: 100%; min-height: 5rem; place-items: center; gap: .2rem; padding: .55rem; border: 2px solid transparent; border-radius: .55rem; color: var(--text); cursor: pointer; font-size: .78rem; font-weight: 800; }
+.matrix-cell span:first-child { font-size: 1.25rem; }
+.matrix-cell:focus-visible, .job-link:focus-visible, .secondary-button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.matrix-na, .matrix-not-run { color: var(--muted); }
+.matrix-key { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .4rem 1rem; margin-top: 1rem; }
+.legend { display: flex; flex-wrap: wrap; gap: .8rem 1.2rem; margin-top: 1rem; color: var(--muted); }
+.legend > span { display: inline-flex; align-items: center; gap: .45rem; }
+.legend-swatch { width: .85rem; height: .85rem; border-radius: 50%; }
+.status-badge { display: inline-flex; width: fit-content; align-items: center; padding: .26rem .55rem; border: 1px solid currentColor; border-radius: 999px; font-size: .78rem; font-weight: 850; }
+.status-pass { background: color-mix(in srgb, var(--pass) 18%, var(--panel)); color: #7ee787; }
+.status-fail { background: color-mix(in srgb, var(--fail) 18%, var(--panel)); color: #ffa198; }
+.status-warning { background: color-mix(in srgb, var(--warning) 20%, var(--panel)); color: #e3b341; }
+.status-skipped { background: color-mix(in srgb, var(--skipped) 18%, var(--panel)); color: #c9d1d9; }
+.report-layout { display: grid; grid-template-columns: minmax(15rem, .75fr) minmax(0, 1.5fr); gap: 1.2rem; align-items: start; }
+.branch-details { display: grid; gap: .7rem; }
+.branch-details details, .command-evidence { border: 1px solid var(--border); border-radius: .65rem; background: var(--panel); }
+summary { padding: .8rem 1rem; cursor: pointer; font-weight: 800; }
+.branch-details details > :not(summary) { margin-inline: 1rem; }
+.evidence-drawer { min-width: 0; padding: 1.2rem; border: 1px solid var(--border); border-radius: .8rem; background: var(--panel-strong); box-shadow: var(--shadow); }
+.secondary-button { padding: .5rem .75rem; border: 1px solid var(--border); border-radius: .5rem; background: var(--panel); color: var(--text); cursor: pointer; }
+.job-detail[hidden], .evidence-drawer[hidden] { display: none; }
+.technical-label { display: inline-block; margin-bottom: 1rem; color: var(--muted); }
+.metadata { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin: 1rem 0; }
+.metadata div { min-width: 0; padding: .65rem; border-left: 3px solid var(--border); background: var(--panel); }
+.metadata dt { color: var(--muted); font-size: .78rem; font-weight: 750; text-transform: uppercase; }
+.metadata dd { margin: .2rem 0 0; overflow-wrap: anywhere; }
+.metadata.compact { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.command-evidence { margin-top: .75rem; overflow: hidden; }
+.command-evidence > summary { display: flex; justify-content: space-between; gap: 1rem; background: var(--panel); }
+.command-evidence > :not(summary) { margin-inline: 1rem; }
+.command-status { color: var(--muted); text-transform: capitalize; }
+.command-failed, .command-timed_out { color: var(--fail); }
+pre { max-height: 22rem; overflow: auto; margin: .5rem 0 1rem; padding: .8rem; border: 1px solid var(--border); border-radius: .45rem; background: #080b10; color: #f0f3f6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.stream-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.log-meta { margin-bottom: .35rem; font-size: .78rem; }
+.reproduction { padding-left: 1.3rem; }
+.reproduction li + li { margin-top: .4rem; }
+.file-list { display: grid; gap: .25rem; }
+.empty-state { color: var(--muted); font-style: italic; }
+.limitations { padding: 1.25rem; border-left: 5px solid var(--warning); background: var(--panel); }
+footer { padding: 0 0 3rem; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@media (max-width: 900px) {
+  .site-header, .section-heading { flex-direction: column; }
+  .run-meta { align-items: flex-start; text-align: left; }
+  .summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .report-layout { grid-template-columns: 1fr; }
+  .metadata.compact, .stream-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .branch-status-list li, .drawer-heading, .job-title { align-items: flex-start; flex-direction: column; }
+  .metadata { grid-template-columns: 1fr; }
+}
+@media print {
+  :root { color-scheme: light; --bg: #fff; --panel: #fff; --panel-strong: #fff; --text: #111; --muted: #444; --border: #888; --shadow: none; }
+  .site-header, main, footer { width: 100%; }
+  .matrix-scroll { overflow: visible; box-shadow: none; }
+  .compatibility-matrix { min-width: 0; font-size: 8pt; }
+  .matrix-cell { min-height: 0; color: #111; }
+  .secondary-button { display: none; }
+  .evidence-drawer[hidden], .job-detail[hidden] { display: block; }
+  .job-detail { break-inside: avoid; margin-top: 1rem; }
+  pre { max-height: none; white-space: pre-wrap; }
+}
+</style>
+</head>
+<body>
+  <a class="skip-link" href="#report-main">Skip to report</a>
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">BranchMesh compatibility report</p>
+      <h1>Committed branch compatibility</h1>
+      <p class="subtitle">Repository 4fe83c54aea59768 · base main at <code>e401286498fd</code></p>
+    </div>
+    <div class="run-meta" aria-label="Run metadata">
+      <span>Run <code>20260717163338-cf988b0b</code></span>
+      <span>5.12 s</span>
+      <span>2026-07-17T16:33:43.241Z</span>
+    </div>
+  </header>
+
+  <main id="report-main">
+    <section aria-labelledby="summary-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Observed result</p>
+          <h2 id="summary-heading">Summary</h2>
+        </div>
+        <span class="status-badge status-pass">Base passed</span>
+      </div>
+      <div class="summary-grid">
+        <article class="summary-card summary-neutral"><strong>3</strong><span>Branches selected</span></article>
+        <article class="summary-card summary-neutral"><strong>3</strong><span>Pairs planned</span></article>
+        <article class="summary-card summary-pass"><strong>2</strong><span>No detected conflict</span></article>
+        <article class="summary-card summary-fail"><strong>1</strong><span>Behavioral conflicts</span></article>
+        <article class="summary-card summary-warning"><strong>0</strong><span>Textual Git conflicts</span></article>
+        <article class="summary-card summary-skipped"><strong>0</strong><span>Pairs skipped</span></article>
+      </div>
+    </section>
+
+    <section aria-labelledby="branches-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Individual evidence</p>
+          <h2 id="branches-heading">Branch statuses</h2>
+        </div>
+      </div>
+      <ul class="branch-status-list">
+        <li><div><strong>feature/config-seconds</strong><code>f615dfe7b433</code></div><button class="job-link" type="button" data-job-target="branch-0" aria-controls="detail-branch-0" aria-expanded="false"><span class="status-badge status-pass">Branch passed</span><span class="visually-hidden">; show details for feature/config-seconds</span></button></li>
+<li><div><strong>feature/jitter</strong><code>209ded26c5e8</code></div><button class="job-link" type="button" data-job-target="branch-1" aria-controls="detail-branch-1" aria-expanded="false"><span class="status-badge status-pass">Branch passed</span><span class="visually-hidden">; show details for feature/jitter</span></button></li>
+<li><div><strong>feature/status-output</strong><code>f9ad9c551fbe</code></div><button class="job-link" type="button" data-job-target="branch-2" aria-controls="detail-branch-2" aria-expanded="false"><span class="status-badge status-pass">Branch passed</span><span class="visually-hidden">; show details for feature/status-output</span></button></li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="matrix-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Pairwise evidence</p>
+          <h2 id="matrix-heading">Compatibility matrix</h2>
+        </div>
+        <p class="section-note">Every cell includes a text label; color is supplementary.</p>
+      </div>
+      <div class="matrix-scroll" tabindex="0" aria-label="Scrollable compatibility matrix"><table class="compatibility-matrix"><caption>Pairwise compatibility for 3 snapshotted branches</caption><thead><tr><th scope="col">Branch</th><th scope="col" title="feature/config-seconds"><span aria-hidden="true">[1]</span><span class="visually-hidden">feature/config-seconds</span></th>
+<th scope="col" title="feature/jitter"><span aria-hidden="true">[2]</span><span class="visually-hidden">feature/jitter</span></th>
+<th scope="col" title="feature/status-output"><span aria-hidden="true">[3]</span><span class="visually-hidden">feature/status-output</span></th></tr></thead><tbody><tr><th scope="row" title="feature/config-seconds"><span aria-hidden="true">[1]</span><span class="visually-hidden">feature/config-seconds</span></th><td><span class="matrix-na" aria-label="feature/config-seconds with itself: not applicable">—</span></td>
+<td><button class="matrix-cell status-fail" type="button" data-job-target="pair-0-1" aria-controls="detail-pair-0-1" aria-expanded="true" aria-label="feature/config-seconds with feature/jitter: Behavioral conflict"><span aria-hidden="true">✕</span><span>Behavioral conflict</span></button></td>
+<td><button class="matrix-cell status-pass" type="button" data-job-target="pair-0-2" aria-controls="detail-pair-0-2" aria-expanded="false" aria-label="feature/config-seconds with feature/status-output: No detected conflict"><span aria-hidden="true">✓</span><span>No detected conflict</span></button></td></tr>
+<tr><th scope="row" title="feature/jitter"><span aria-hidden="true">[2]</span><span class="visually-hidden">feature/jitter</span></th><td><button class="matrix-cell status-fail" type="button" data-job-target="pair-0-1" aria-controls="detail-pair-0-1" aria-expanded="true" aria-label="feature/jitter with feature/config-seconds: Behavioral conflict"><span aria-hidden="true">✕</span><span>Behavioral conflict</span></button></td>
+<td><span class="matrix-na" aria-label="feature/jitter with itself: not applicable">—</span></td>
+<td><button class="matrix-cell status-pass" type="button" data-job-target="pair-1-2" aria-controls="detail-pair-1-2" aria-expanded="false" aria-label="feature/jitter with feature/status-output: No detected conflict"><span aria-hidden="true">✓</span><span>No detected conflict</span></button></td></tr>
+<tr><th scope="row" title="feature/status-output"><span aria-hidden="true">[3]</span><span class="visually-hidden">feature/status-output</span></th><td><button class="matrix-cell status-pass" type="button" data-job-target="pair-0-2" aria-controls="detail-pair-0-2" aria-expanded="false" aria-label="feature/status-output with feature/config-seconds: No detected conflict"><span aria-hidden="true">✓</span><span>No detected conflict</span></button></td>
+<td><button class="matrix-cell status-pass" type="button" data-job-target="pair-1-2" aria-controls="detail-pair-1-2" aria-expanded="false" aria-label="feature/status-output with feature/jitter: No detected conflict"><span aria-hidden="true">✓</span><span>No detected conflict</span></button></td>
+<td><span class="matrix-na" aria-label="feature/status-output with itself: not applicable">—</span></td></tr></tbody></table></div>
+      <ul class="matrix-key" aria-label="Branch key">
+        <li><strong>[1]</strong> feature/config-seconds <code>f615dfe7b433</code></li>
+<li><strong>[2]</strong> feature/jitter <code>209ded26c5e8</code></li>
+<li><strong>[3]</strong> feature/status-output <code>f9ad9c551fbe</code></li>
+      </ul>
+      <div class="legend" aria-label="Compatibility status legend">
+        <span><span class="legend-swatch status-pass" aria-hidden="true"></span>No detected conflict</span>
+        <span><span class="legend-swatch status-fail" aria-hidden="true"></span>Behavioral conflict</span>
+        <span><span class="legend-swatch status-warning" aria-hidden="true"></span>Textual Git conflict</span>
+        <span><span class="legend-swatch status-skipped" aria-hidden="true"></span>Pair skipped</span>
+      </div>
+    </section>
+
+    <section class="report-layout" aria-labelledby="evidence-heading">
+      <div>
+        <p class="eyebrow">Snapshots</p>
+        <h2>Branch details</h2>
+        <div class="branch-details">
+          <details><summary>feature/config-seconds</summary><dl class="metadata"><div><dt>Commit</dt><dd><code>f615dfe7b433395aff6679bd908c7696c613b675</code></dd></div><div><dt>Selected worktree dirty</dt><dd>No</dd></div></dl><h3>Changed files</h3><ul class="file-list"><li><code>src/config.js</code></li>
+<li><code>src/retry.js</code></li></ul></details>
+<details><summary>feature/jitter</summary><dl class="metadata"><div><dt>Commit</dt><dd><code>209ded26c5e8705200df29e4b26a13021be615e8</code></dd></div><div><dt>Selected worktree dirty</dt><dd>No</dd></div></dl><h3>Changed files</h3><ul class="file-list"><li><code>src/jitter.js</code></li>
+<li><code>test/jitter.test.js</code></li></ul></details>
+<details><summary>feature/status-output</summary><dl class="metadata"><div><dt>Commit</dt><dd><code>f9ad9c551fbe8b6d930c2334efc07cbdacd692d4</code></dd></div><div><dt>Selected worktree dirty</dt><dd>No</dd></div></dl><h3>Changed files</h3><ul class="file-list"><li><code>src/status.js</code></li>
+<li><code>test/status.test.js</code></li></ul></details>
+        </div>
+      </div>
+      <aside id="evidence-drawer" class="evidence-drawer" aria-labelledby="evidence-heading" aria-live="polite">
+        <div class="drawer-heading">
+          <div>
+            <p class="eyebrow">Selected evidence</p>
+            <h2 id="evidence-heading">Job details</h2>
+          </div>
+          <button id="close-evidence" class="secondary-button" type="button">Close details</button>
+        </div>
+        <article id="detail-base" class="job-detail" data-job-panel="base" hidden tabindex="-1">
+    <div class="job-title"><div><p class="eyebrow">base job</p><h3>Base validation</h3></div><span class="status-badge status-pass">Base passed</span></div>
+    
+    <dl class="metadata">
+      <div><dt>Classification</dt><dd><code>BASE_PASS</code></dd></div>
+      <div><dt>Duration</dt><dd>608 ms</dd></div>
+      <div><dt>Base SHA</dt><dd><code>e401286498fd542de1f20d749270f973f0675e15</code></dd></div>
+      <div><dt>Merge order</dt><dd>Base only</dd></div>
+    </dl>
+    
+    
+    <h4>Command evidence</h4>
+    <details class="command-evidence">
+    <summary><span>Tests</span><span class="command-status command-passed">passed</span></summary>
+    <dl class="metadata compact"><div><dt>Kind</dt><dd>test</dd></div><div><dt>Duration</dt><dd>529 ms</dd></div><div><dt>Process</dt><dd>Exit code 0; No signal</dd></div><div><dt>Timeout</dt><dd>No (30000 ms limit)</dd></div></dl>
+    <p><strong>Command</strong></p><pre><code>node --test</code></pre>
+    <div class="stream-grid">
+      <section class="stream"><h5>stdout</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/base/00-test.stdout.log</code></p><pre><code>✔ the retry delay remains one second (2.50852ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 291.656099
+</code></pre></section>
+      <section class="stream"><h5>stderr</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/base/00-test.stderr.log</code></p><pre><code>(no output)</code></pre></section>
+    </div>
+  </details>
+    <h4>Reproduction information</h4>
+    <ol class="reproduction"><li>Create a disposable detached worktree at base <code>e401286498fd542de1f20d749270f973f0675e15</code>.</li>
+<li>Run <code>node --test</code> in that temporary worktree.</li></ol>
+  </article>
+<article id="detail-branch-0" class="job-detail" data-job-panel="branch-0" hidden tabindex="-1">
+    <div class="job-title"><div><p class="eyebrow">branch job</p><h3>feature/config-seconds</h3></div><span class="status-badge status-pass">Branch passed</span></div>
+    
+    <dl class="metadata">
+      <div><dt>Classification</dt><dd><code>BRANCH_PASS</code></dd></div>
+      <div><dt>Duration</dt><dd>819 ms</dd></div>
+      <div><dt>Base SHA</dt><dd><code>e401286498fd542de1f20d749270f973f0675e15</code></dd></div>
+      <div><dt>Merge order</dt><dd>feature/config-seconds</dd></div>
+    </dl>
+    
+    
+    <h4>Command evidence</h4>
+    <details class="command-evidence">
+    <summary><span>Tests</span><span class="command-status command-passed">passed</span></summary>
+    <dl class="metadata compact"><div><dt>Kind</dt><dd>test</dd></div><div><dt>Duration</dt><dd>664 ms</dd></div><div><dt>Process</dt><dd>Exit code 0; No signal</dd></div><div><dt>Timeout</dt><dd>No (30000 ms limit)</dd></div></dl>
+    <p><strong>Command</strong></p><pre><code>node --test</code></pre>
+    <div class="stream-grid">
+      <section class="stream"><h5>stdout</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/branch-0/00-test.stdout.log</code></p><pre><code>✔ the retry delay remains one second (2.57163ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 389.668568
+</code></pre></section>
+      <section class="stream"><h5>stderr</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/branch-0/00-test.stderr.log</code></p><pre><code>(no output)</code></pre></section>
+    </div>
+  </details>
+    <h4>Reproduction information</h4>
+    <ol class="reproduction"><li>Create a disposable detached worktree at base <code>e401286498fd542de1f20d749270f973f0675e15</code>.</li>
+<li>Merge captured commit <code>f615dfe7b433395aff6679bd908c7696c613b675</code> for feature/config-seconds in the displayed order.</li>
+<li>Run <code>node --test</code> in that temporary worktree.</li></ol>
+  </article>
+<article id="detail-branch-1" class="job-detail" data-job-panel="branch-1" hidden tabindex="-1">
+    <div class="job-title"><div><p class="eyebrow">branch job</p><h3>feature/jitter</h3></div><span class="status-badge status-pass">Branch passed</span></div>
+    
+    <dl class="metadata">
+      <div><dt>Classification</dt><dd><code>BRANCH_PASS</code></dd></div>
+      <div><dt>Duration</dt><dd>823 ms</dd></div>
+      <div><dt>Base SHA</dt><dd><code>e401286498fd542de1f20d749270f973f0675e15</code></dd></div>
+      <div><dt>Merge order</dt><dd>feature/jitter</dd></div>
+    </dl>
+    
+    
+    <h4>Command evidence</h4>
+    <details class="command-evidence">
+    <summary><span>Tests</span><span class="command-status command-passed">passed</span></summary>
+    <dl class="metadata compact"><div><dt>Kind</dt><dd>test</dd></div><div><dt>Duration</dt><dd>676 ms</dd></div><div><dt>Process</dt><dd>Exit code 0; No signal</dd></div><div><dt>Timeout</dt><dd>No (30000 ms limit)</dd></div></dl>
+    <p><strong>Command</strong></p><pre><code>node --test</code></pre>
+    <div class="stream-grid">
+      <section class="stream"><h5>stdout</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/branch-1/00-test.stdout.log</code></p><pre><code>✔ jitter adds one hundred milliseconds (3.869694ms)
+✔ the retry delay remains one second (2.972635ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 394.42999
+</code></pre></section>
+      <section class="stream"><h5>stderr</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/branch-1/00-test.stderr.log</code></p><pre><code>(no output)</code></pre></section>
+    </div>
+  </details>
+    <h4>Reproduction information</h4>
+    <ol class="reproduction"><li>Create a disposable detached worktree at base <code>e401286498fd542de1f20d749270f973f0675e15</code>.</li>
+<li>Merge captured commit <code>209ded26c5e8705200df29e4b26a13021be615e8</code> for feature/jitter in the displayed order.</li>
+<li>Run <code>node --test</code> in that temporary worktree.</li></ol>
+  </article>
+<article id="detail-branch-2" class="job-detail" data-job-panel="branch-2" hidden tabindex="-1">
+    <div class="job-title"><div><p class="eyebrow">branch job</p><h3>feature/status-output</h3></div><span class="status-badge status-pass">Branch passed</span></div>
+    
+    <dl class="metadata">
+      <div><dt>Classification</dt><dd><code>BRANCH_PASS</code></dd></div>
+      <div><dt>Duration</dt><dd>726 ms</dd></div>
+      <div><dt>Base SHA</dt><dd><code>e401286498fd542de1f20d749270f973f0675e15</code></dd></div>
+      <div><dt>Merge order</dt><dd>feature/status-output</dd></div>
+    </dl>
+    
+    
+    <h4>Command evidence</h4>
+    <details class="command-evidence">
+    <summary><span>Tests</span><span class="command-status command-passed">passed</span></summary>
+    <dl class="metadata compact"><div><dt>Kind</dt><dd>test</dd></div><div><dt>Duration</dt><dd>579 ms</dd></div><div><dt>Process</dt><dd>Exit code 0; No signal</dd></div><div><dt>Timeout</dt><dd>No (30000 ms limit)</dd></div></dl>
+    <p><strong>Command</strong></p><pre><code>node --test</code></pre>
+    <div class="stream-grid">
+      <section class="stream"><h5>stdout</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/branch-2/00-test.stdout.log</code></p><pre><code>✔ the retry delay remains one second (2.431514ms)
+✔ the retry status is ready (2.330902ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 330.211384
+</code></pre></section>
+      <section class="stream"><h5>stderr</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/branch-2/00-test.stderr.log</code></p><pre><code>(no output)</code></pre></section>
+    </div>
+  </details>
+    <h4>Reproduction information</h4>
+    <ol class="reproduction"><li>Create a disposable detached worktree at base <code>e401286498fd542de1f20d749270f973f0675e15</code>.</li>
+<li>Merge captured commit <code>f9ad9c551fbe8b6d930c2334efc07cbdacd692d4</code> for feature/status-output in the displayed order.</li>
+<li>Run <code>node --test</code> in that temporary worktree.</li></ol>
+  </article>
+<article id="detail-pair-0-1" class="job-detail" data-job-panel="pair-0-1" tabindex="-1">
+    <div class="job-title"><div><p class="eyebrow">pair job</p><h3>feature/config-seconds + feature/jitter</h3></div><span class="status-badge status-fail">Behavioral conflict</span></div>
+    <span class="technical-label">Test failure · <code>PAIR_TEST_FAILURE</code></span>
+    <dl class="metadata">
+      <div><dt>Classification</dt><dd><code>BEHAVIORAL_CONFLICT</code></dd></div>
+      <div><dt>Duration</dt><dd>905 ms</dd></div>
+      <div><dt>Base SHA</dt><dd><code>e401286498fd542de1f20d749270f973f0675e15</code></dd></div>
+      <div><dt>Merge order</dt><dd>feature/config-seconds → feature/jitter</dd></div>
+    </dl>
+    
+    
+    <h4>Command evidence</h4>
+    <details class="command-evidence" open>
+    <summary><span>Tests</span><span class="command-status command-failed">failed</span></summary>
+    <dl class="metadata compact"><div><dt>Kind</dt><dd>test</dd></div><div><dt>Duration</dt><dd>690 ms</dd></div><div><dt>Process</dt><dd>Exit code 1; No signal</dd></div><div><dt>Timeout</dt><dd>No (30000 ms limit)</dd></div></dl>
+    <p><strong>Command</strong></p><pre><code>node --test</code></pre>
+    <div class="stream-grid">
+      <section class="stream"><h5>stdout</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/pair-0-1/00-test.stdout.log</code></p><pre><code>✖ jitter adds one hundred milliseconds (8.100889ms)
+✔ the retry delay remains one second (3.926757ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 434.629427
+
+✖ failing tests:
+
+test at test/jitter.test.js:6:1
+✖ jitter adds one hundred milliseconds (8.100889ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  NaN !== 1100
+  
+      at TestContext.&lt;anonymous&gt; (file://[redacted]/worktrees/pair-0-1/checkout/test/jitter.test.js:7:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: &#39;ERR_ASSERTION&#39;,
+    actual: NaN,
+    expected: 1100,
+    operator: &#39;strictEqual&#39;,
+    diff: &#39;simple&#39;
+  }
+</code></pre></section>
+      <section class="stream"><h5>stderr</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/pair-0-1/00-test.stderr.log</code></p><pre><code>(no output)</code></pre></section>
+    </div>
+  </details>
+    <h4>Reproduction information</h4>
+    <ol class="reproduction"><li>Create a disposable detached worktree at base <code>e401286498fd542de1f20d749270f973f0675e15</code>.</li>
+<li>Merge captured commit <code>f615dfe7b433395aff6679bd908c7696c613b675</code> for feature/config-seconds in the displayed order.</li>
+<li>Merge captured commit <code>209ded26c5e8705200df29e4b26a13021be615e8</code> for feature/jitter in the displayed order.</li>
+<li>Run <code>node --test</code> in that temporary worktree.</li></ol>
+  </article>
+<article id="detail-pair-0-2" class="job-detail" data-job-panel="pair-0-2" hidden tabindex="-1">
+    <div class="job-title"><div><p class="eyebrow">pair job</p><h3>feature/config-seconds + feature/status-output</h3></div><span class="status-badge status-pass">No detected conflict</span></div>
+    
+    <dl class="metadata">
+      <div><dt>Classification</dt><dd><code>NO_DETECTED_CONFLICT</code></dd></div>
+      <div><dt>Duration</dt><dd>890 ms</dd></div>
+      <div><dt>Base SHA</dt><dd><code>e401286498fd542de1f20d749270f973f0675e15</code></dd></div>
+      <div><dt>Merge order</dt><dd>feature/config-seconds → feature/status-output</dd></div>
+    </dl>
+    
+    
+    <h4>Command evidence</h4>
+    <details class="command-evidence">
+    <summary><span>Tests</span><span class="command-status command-passed">passed</span></summary>
+    <dl class="metadata compact"><div><dt>Kind</dt><dd>test</dd></div><div><dt>Duration</dt><dd>678 ms</dd></div><div><dt>Process</dt><dd>Exit code 0; No signal</dd></div><div><dt>Timeout</dt><dd>No (30000 ms limit)</dd></div></dl>
+    <p><strong>Command</strong></p><pre><code>node --test</code></pre>
+    <div class="stream-grid">
+      <section class="stream"><h5>stdout</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/pair-0-2/00-test.stdout.log</code></p><pre><code>✔ the retry delay remains one second (2.397348ms)
+✔ the retry status is ready (2.768396ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 422.79623
+</code></pre></section>
+      <section class="stream"><h5>stderr</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/pair-0-2/00-test.stderr.log</code></p><pre><code>(no output)</code></pre></section>
+    </div>
+  </details>
+    <h4>Reproduction information</h4>
+    <ol class="reproduction"><li>Create a disposable detached worktree at base <code>e401286498fd542de1f20d749270f973f0675e15</code>.</li>
+<li>Merge captured commit <code>f615dfe7b433395aff6679bd908c7696c613b675</code> for feature/config-seconds in the displayed order.</li>
+<li>Merge captured commit <code>f9ad9c551fbe8b6d930c2334efc07cbdacd692d4</code> for feature/status-output in the displayed order.</li>
+<li>Run <code>node --test</code> in that temporary worktree.</li></ol>
+  </article>
+<article id="detail-pair-1-2" class="job-detail" data-job-panel="pair-1-2" hidden tabindex="-1">
+    <div class="job-title"><div><p class="eyebrow">pair job</p><h3>feature/jitter + feature/status-output</h3></div><span class="status-badge status-pass">No detected conflict</span></div>
+    
+    <dl class="metadata">
+      <div><dt>Classification</dt><dd><code>NO_DETECTED_CONFLICT</code></dd></div>
+      <div><dt>Duration</dt><dd>917 ms</dd></div>
+      <div><dt>Base SHA</dt><dd><code>e401286498fd542de1f20d749270f973f0675e15</code></dd></div>
+      <div><dt>Merge order</dt><dd>feature/jitter → feature/status-output</dd></div>
+    </dl>
+    
+    
+    <h4>Command evidence</h4>
+    <details class="command-evidence">
+    <summary><span>Tests</span><span class="command-status command-passed">passed</span></summary>
+    <dl class="metadata compact"><div><dt>Kind</dt><dd>test</dd></div><div><dt>Duration</dt><dd>691 ms</dd></div><div><dt>Process</dt><dd>Exit code 0; No signal</dd></div><div><dt>Timeout</dt><dd>No (30000 ms limit)</dd></div></dl>
+    <p><strong>Command</strong></p><pre><code>node --test</code></pre>
+    <div class="stream-grid">
+      <section class="stream"><h5>stdout</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/pair-1-2/00-test.stdout.log</code></p><pre><code>✔ jitter adds one hundred milliseconds (2.786429ms)
+✔ the retry delay remains one second (3.745604ms)
+✔ the retry status is ready (3.650767ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 417.508649
+</code></pre></section>
+      <section class="stream"><h5>stderr</h5><p class="log-meta">Embedded evidence complete · raw log <code>logs/pair-1-2/00-test.stderr.log</code></p><pre><code>(no output)</code></pre></section>
+    </div>
+  </details>
+    <h4>Reproduction information</h4>
+    <ol class="reproduction"><li>Create a disposable detached worktree at base <code>e401286498fd542de1f20d749270f973f0675e15</code>.</li>
+<li>Merge captured commit <code>209ded26c5e8705200df29e4b26a13021be615e8</code> for feature/jitter in the displayed order.</li>
+<li>Merge captured commit <code>f9ad9c551fbe8b6d930c2334efc07cbdacd692d4</code> for feature/status-output in the displayed order.</li>
+<li>Run <code>node --test</code> in that temporary worktree.</li></ol>
+  </article>
+      </aside>
+    </section>
+
+    <section class="limitations" aria-labelledby="limitations-heading">
+      <p class="eyebrow">Evidence boundary</p>
+      <h2 id="limitations-heading">Limitations</h2>
+      <p>BranchMesh detects incompatibilities observable through the configured commands. Passing combinations may still contain defects not covered by those checks.</p>
+      <p>This report covers committed branch tips and pairwise combinations in the displayed merge order. It does not include uncommitted worktree content or reverse merge-order testing.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Generated locally by BranchMesh 0.1.0. This file contains no external assets or runtime network requests.</p>
+  </footer>
+
+  <script id="branchmesh-report-data" type="application/json">{"schemaVersion":1,"runId":"20260717163338-cf988b0b","toolVersion":"0.1.0","repositoryFingerprint":"4fe83c54aea59768","runtime":{"nodeVersion":"25.9.0","gitVersion":"2.50.1","platform":"darwin","concurrency":2},"startedAt":"2026-07-17T16:33:38.122Z","completedAt":"2026-07-17T16:33:43.241Z","durationMs":5119,"exitCode":1,"base":{"ref":"main","sha":"e401286498fd542de1f20d749270f973f0675e15","dirty":false,"changedFiles":[]},"branches":[{"ref":"feature/config-seconds","sha":"f615dfe7b433395aff6679bd908c7696c613b675","dirty":false,"changedFiles":["src/config.js","src/retry.js"]},{"ref":"feature/jitter","sha":"209ded26c5e8705200df29e4b26a13021be615e8","dirty":false,"changedFiles":["src/jitter.js","test/jitter.test.js"]},{"ref":"feature/status-output","sha":"f9ad9c551fbe8b6d930c2334efc07cbdacd692d4","dirty":false,"changedFiles":["src/status.js","test/status.test.js"]}],"jobs":[{"id":"base","kind":"base","baseSha":"e401286498fd542de1f20d749270f973f0675e15","branchRefs":[],"branchShas":[],"mergeOrder":[],"classification":"BASE_PASS","technicalClassification":null,"skipReason":null,"failedCommandId":null,"conflictedFiles":[],"commands":[{"id":"test","label":"Tests","kind":"test","command":"node --test","timeoutMs":30000,"exitCode":0,"signal":null,"durationMs":529,"status":"passed","timedOut":false,"stdout":{"text":"✔ the retry delay remains one second (2.50852ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 291.656099\n","totalBytes":166,"capturedBytes":166,"truncated":false},"stderr":{"text":"","totalBytes":0,"capturedBytes":0,"truncated":false},"stdoutLogPath":"logs/base/00-test.stdout.log","stderrLogPath":"logs/base/00-test.stderr.log"}],"reproduction":{"baseSha":"e401286498fd542de1f20d749270f973f0675e15","mergeShas":[],"mergeOrder":[],"commands":["node --test"]},"startedAt":"2026-07-17T16:33:38.697Z","completedAt":"2026-07-17T16:33:39.305Z","durationMs":608},{"id":"branch-0","kind":"branch","baseSha":"e401286498fd542de1f20d749270f973f0675e15","branchRefs":["feature/config-seconds"],"branchShas":["f615dfe7b433395aff6679bd908c7696c613b675"],"mergeOrder":["feature/config-seconds"],"classification":"BRANCH_PASS","technicalClassification":null,"skipReason":null,"failedCommandId":null,"conflictedFiles":[],"commands":[{"id":"test","label":"Tests","kind":"test","command":"node --test","timeoutMs":30000,"exitCode":0,"signal":null,"durationMs":664,"status":"passed","timedOut":false,"stdout":{"text":"✔ the retry delay remains one second (2.57163ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 389.668568\n","totalBytes":166,"capturedBytes":166,"truncated":false},"stderr":{"text":"","totalBytes":0,"capturedBytes":0,"truncated":false},"stdoutLogPath":"logs/branch-0/00-test.stdout.log","stderrLogPath":"logs/branch-0/00-test.stderr.log"}],"reproduction":{"baseSha":"e401286498fd542de1f20d749270f973f0675e15","mergeShas":["f615dfe7b433395aff6679bd908c7696c613b675"],"mergeOrder":["feature/config-seconds"],"commands":["node --test"]},"startedAt":"2026-07-17T16:33:39.414Z","completedAt":"2026-07-17T16:33:40.233Z","durationMs":819},{"id":"branch-1","kind":"branch","baseSha":"e401286498fd542de1f20d749270f973f0675e15","branchRefs":["feature/jitter"],"branchShas":["209ded26c5e8705200df29e4b26a13021be615e8"],"mergeOrder":["feature/jitter"],"classification":"BRANCH_PASS","technicalClassification":null,"skipReason":null,"failedCommandId":null,"conflictedFiles":[],"commands":[{"id":"test","label":"Tests","kind":"test","command":"node --test","timeoutMs":30000,"exitCode":0,"signal":null,"durationMs":676,"status":"passed","timedOut":false,"stdout":{"text":"✔ jitter adds one hundred milliseconds (3.869694ms)\n✔ the retry delay remains one second (2.972635ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 394.42999\n","totalBytes":220,"capturedBytes":220,"truncated":false},"stderr":{"text":"","totalBytes":0,"capturedBytes":0,"truncated":false},"stdoutLogPath":"logs/branch-1/00-test.stdout.log","stderrLogPath":"logs/branch-1/00-test.stderr.log"}],"reproduction":{"baseSha":"e401286498fd542de1f20d749270f973f0675e15","mergeShas":["209ded26c5e8705200df29e4b26a13021be615e8"],"mergeOrder":["feature/jitter"],"commands":["node --test"]},"startedAt":"2026-07-17T16:33:39.414Z","completedAt":"2026-07-17T16:33:40.237Z","durationMs":823},{"id":"branch-2","kind":"branch","baseSha":"e401286498fd542de1f20d749270f973f0675e15","branchRefs":["feature/status-output"],"branchShas":["f9ad9c551fbe8b6d930c2334efc07cbdacd692d4"],"mergeOrder":["feature/status-output"],"classification":"BRANCH_PASS","technicalClassification":null,"skipReason":null,"failedCommandId":null,"conflictedFiles":[],"commands":[{"id":"test","label":"Tests","kind":"test","command":"node --test","timeoutMs":30000,"exitCode":0,"signal":null,"durationMs":579,"status":"passed","timedOut":false,"stdout":{"text":"✔ the retry delay remains one second (2.431514ms)\n✔ the retry status is ready (2.330902ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 330.211384\n","totalBytes":210,"capturedBytes":210,"truncated":false},"stderr":{"text":"","totalBytes":0,"capturedBytes":0,"truncated":false},"stdoutLogPath":"logs/branch-2/00-test.stdout.log","stderrLogPath":"logs/branch-2/00-test.stderr.log"}],"reproduction":{"baseSha":"e401286498fd542de1f20d749270f973f0675e15","mergeShas":["f9ad9c551fbe8b6d930c2334efc07cbdacd692d4"],"mergeOrder":["feature/status-output"],"commands":["node --test"]},"startedAt":"2026-07-17T16:33:40.355Z","completedAt":"2026-07-17T16:33:41.081Z","durationMs":726},{"id":"pair-0-1","kind":"pair","baseSha":"e401286498fd542de1f20d749270f973f0675e15","branchRefs":["feature/config-seconds","feature/jitter"],"branchShas":["f615dfe7b433395aff6679bd908c7696c613b675","209ded26c5e8705200df29e4b26a13021be615e8"],"mergeOrder":["feature/config-seconds","feature/jitter"],"classification":"BEHAVIORAL_CONFLICT","technicalClassification":"PAIR_TEST_FAILURE","skipReason":null,"failedCommandId":"test","conflictedFiles":[],"commands":[{"id":"test","label":"Tests","kind":"test","command":"node --test","timeoutMs":30000,"exitCode":1,"signal":null,"durationMs":690,"status":"failed","timedOut":false,"stdout":{"text":"✖ jitter adds one hundred milliseconds (8.100889ms)\n✔ the retry delay remains one second (3.926757ms)\nℹ tests 2\nℹ suites 0\nℹ pass 1\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 434.629427\n\n✖ failing tests:\n\ntest at test/jitter.test.js:6:1\n✖ jitter adds one hundred milliseconds (8.100889ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  NaN !== 1100\n  \n      at TestContext.\u003canonymous\u003e (file://[redacted]/worktrees/pair-0-1/checkout/test/jitter.test.js:7:10)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1201:25)\n      at Test.start (node:internal/test_runner/test:1096:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: NaN,\n    expected: 1100,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n","totalBytes":996,"capturedBytes":996,"truncated":false},"stderr":{"text":"","totalBytes":0,"capturedBytes":0,"truncated":false},"stdoutLogPath":"logs/pair-0-1/00-test.stdout.log","stderrLogPath":"logs/pair-0-1/00-test.stderr.log"}],"reproduction":{"baseSha":"e401286498fd542de1f20d749270f973f0675e15","mergeShas":["f615dfe7b433395aff6679bd908c7696c613b675","209ded26c5e8705200df29e4b26a13021be615e8"],"mergeOrder":["feature/config-seconds","feature/jitter"],"commands":["node --test"]},"startedAt":"2026-07-17T16:33:41.191Z","completedAt":"2026-07-17T16:33:42.096Z","durationMs":905},{"id":"pair-0-2","kind":"pair","baseSha":"e401286498fd542de1f20d749270f973f0675e15","branchRefs":["feature/config-seconds","feature/status-output"],"branchShas":["f615dfe7b433395aff6679bd908c7696c613b675","f9ad9c551fbe8b6d930c2334efc07cbdacd692d4"],"mergeOrder":["feature/config-seconds","feature/status-output"],"classification":"NO_DETECTED_CONFLICT","technicalClassification":null,"skipReason":null,"failedCommandId":null,"conflictedFiles":[],"commands":[{"id":"test","label":"Tests","kind":"test","command":"node --test","timeoutMs":30000,"exitCode":0,"signal":null,"durationMs":678,"status":"passed","timedOut":false,"stdout":{"text":"✔ the retry delay remains one second (2.397348ms)\n✔ the retry status is ready (2.768396ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 422.79623\n","totalBytes":209,"capturedBytes":209,"truncated":false},"stderr":{"text":"","totalBytes":0,"capturedBytes":0,"truncated":false},"stdoutLogPath":"logs/pair-0-2/00-test.stdout.log","stderrLogPath":"logs/pair-0-2/00-test.stderr.log"}],"reproduction":{"baseSha":"e401286498fd542de1f20d749270f973f0675e15","mergeShas":["f615dfe7b433395aff6679bd908c7696c613b675","f9ad9c551fbe8b6d930c2334efc07cbdacd692d4"],"mergeOrder":["feature/config-seconds","feature/status-output"],"commands":["node --test"]},"startedAt":"2026-07-17T16:33:41.191Z","completedAt":"2026-07-17T16:33:42.081Z","durationMs":890},{"id":"pair-1-2","kind":"pair","baseSha":"e401286498fd542de1f20d749270f973f0675e15","branchRefs":["feature/jitter","feature/status-output"],"branchShas":["209ded26c5e8705200df29e4b26a13021be615e8","f9ad9c551fbe8b6d930c2334efc07cbdacd692d4"],"mergeOrder":["feature/jitter","feature/status-output"],"classification":"NO_DETECTED_CONFLICT","technicalClassification":null,"skipReason":null,"failedCommandId":null,"conflictedFiles":[],"commands":[{"id":"test","label":"Tests","kind":"test","command":"node --test","timeoutMs":30000,"exitCode":0,"signal":null,"durationMs":691,"status":"passed","timedOut":false,"stdout":{"text":"✔ jitter adds one hundred milliseconds (2.786429ms)\n✔ the retry delay remains one second (3.745604ms)\n✔ the retry status is ready (3.650767ms)\nℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 417.508649\n","totalBytes":264,"capturedBytes":264,"truncated":false},"stderr":{"text":"","totalBytes":0,"capturedBytes":0,"truncated":false},"stdoutLogPath":"logs/pair-1-2/00-test.stdout.log","stderrLogPath":"logs/pair-1-2/00-test.stderr.log"}],"reproduction":{"baseSha":"e401286498fd542de1f20d749270f973f0675e15","mergeShas":["209ded26c5e8705200df29e4b26a13021be615e8","f9ad9c551fbe8b6d930c2334efc07cbdacd692d4"],"mergeOrder":["feature/jitter","feature/status-output"],"commands":["node --test"]},"startedAt":"2026-07-17T16:33:42.205Z","completedAt":"2026-07-17T16:33:43.122Z","durationMs":917}],"summary":{"branchCount":3,"pairCount":3,"passedBranches":3,"failedBranches":0,"passedPairs":2,"behavioralConflicts":1,"textualConflicts":0,"skippedPairs":0}}</script>
+  <script>(() => {
+  "use strict";
+  const drawer = document.getElementById("evidence-drawer");
+  const closeButton = document.getElementById("close-evidence");
+  const buttons = Array.from(document.querySelectorAll("[data-job-target]"));
+  const panels = Array.from(document.querySelectorAll("[data-job-panel]"));
+
+  function showJob(jobId, focusPanel) {
+    drawer.hidden = false;
+    for (const panel of panels) {
+      const selected = panel.dataset.jobPanel === jobId;
+      panel.hidden = !selected;
+      if (selected && focusPanel) panel.focus();
+    }
+    for (const button of buttons) {
+      button.setAttribute("aria-expanded", String(button.dataset.jobTarget === jobId));
+    }
+  }
+
+  for (const button of buttons) {
+    button.addEventListener("click", () => showJob(button.dataset.jobTarget, true));
+  }
+
+  closeButton.addEventListener("click", () => {
+    drawer.hidden = true;
+    for (const button of buttons) button.setAttribute("aria-expanded", "false");
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !drawer.hidden) closeButton.click();
+  });
+})();</script>
+</body>
+</html>

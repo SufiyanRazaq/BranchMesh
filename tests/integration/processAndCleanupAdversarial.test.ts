@@ -16,6 +16,9 @@ import {
 } from "../helpers/scanTestSupport.js";
 
 const branches = ["feature/a", "feature/b"] as const;
+const processTreeTimeoutMs = 5_000;
+const descendantMarkerDelayMs = 7_500;
+const descendantCheckDelayMs = descendantMarkerDelayMs - processTreeTimeoutMs + 1_000;
 
 describe("adversarial process and cleanup behavior", () => {
   it("handles a first and second interruption idempotently while cleaning active worktrees", async () => {
@@ -55,7 +58,7 @@ describe("adversarial process and cleanup behavior", () => {
       source.emit("SIGTERM");
 
       const error = await scanResult;
-      expect(isAbortError(error)).toBe(true);
+      expect(isAbortError(error), describeUnexpectedError(error)).toBe(true);
       expect(abortEvents).toBe(1);
       expect(await repository.captureState()).toEqual(stateBefore);
       expect(await repository.listWorktrees()).toEqual([path.resolve(repository.repositoryPath)]);
@@ -71,7 +74,7 @@ describe("adversarial process and cleanup behavior", () => {
 
   it("terminates child and grandchild processes before timeout cleanup removes the worktree", async () => {
     const repository = await TemporaryGitRepository.create({
-      baseFiles: { "process-tree.cjs": processTreeFixture() },
+      baseFiles: { "process-tree.cjs": processTreeFixture(descendantMarkerDelayMs) },
     });
     const descendantMarker = path.join(repository.root, "descendant-survived.txt");
     const originalMarker = process.env["BRANCHMESH_TEST_DESCENDANT_MARKER"];
@@ -91,7 +94,7 @@ describe("adversarial process and cleanup behavior", () => {
             label: "Process tree",
             kind: "custom",
             command: "node process-tree.cjs",
-            timeoutMs: 750,
+            timeoutMs: processTreeTimeoutMs,
           },
         ]),
         toolVersion: "test",
@@ -110,7 +113,7 @@ describe("adversarial process and cleanup behavior", () => {
       expect(await pathExists(outcome.executionRoot)).toBe(false);
 
       await new Promise<void>((resolve) => {
-        setTimeout(resolve, 1_800);
+        setTimeout(resolve, descendantCheckDelayMs);
       });
       expect(await pathExists(descendantMarker)).toBe(false);
     } finally {
@@ -149,6 +152,12 @@ describe("adversarial process and cleanup behavior", () => {
   });
 });
 
+function describeUnexpectedError(error: unknown): string {
+  return error instanceof Error
+    ? `Expected cancellation, received ${error.name}: ${error.message}\n${error.stack ?? ""}`
+    : `Expected cancellation, received ${String(error)}`;
+}
+
 async function createIndependentPair(): Promise<TemporaryGitRepository> {
   const repository = await TemporaryGitRepository.create();
   await repository.createBranch("feature/a", { "a.flag": "a\n" });
@@ -156,11 +165,11 @@ async function createIndependentPair(): Promise<TemporaryGitRepository> {
   return repository;
 }
 
-function processTreeFixture(): string {
+function processTreeFixture(markerDelayMs: number): string {
   const grandchild = [
     "setTimeout(() => {",
     "  require('node:fs').writeFileSync(process.env.BRANCHMESH_TEST_DESCENDANT_MARKER, 'orphan');",
-    "}, 1500);",
+    `}, ${String(markerDelayMs)});`,
   ].join("\n");
   const child = [
     "const { spawn } = require('node:child_process');",

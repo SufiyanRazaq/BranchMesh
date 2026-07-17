@@ -114,6 +114,10 @@ Each job:
 6. terminates and awaits any process descendants;
 7. removes the exact ownership-proven worktree in `finally`.
 
+Git worktree add, list, and remove operations are serialized within a run because they share one
+common Git administrative directory. Validation and merge jobs remain bounded-concurrent; stored
+result order remains plan-indexed and deterministic.
+
 Synthetic merges use a fixed local identity, signing disabled, and a run-owned empty hooks path.
 Internal Git uses argv arrays and `shell: false`. Only unchanged configured strings use
 `shell: true` inside detached worktrees.

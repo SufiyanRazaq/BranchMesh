@@ -15,6 +15,7 @@ import {
   executionLockFileName,
   executionManifestFileName,
   executionMarkerFileName,
+  executionWorktreePath,
   readRegularOwnershipFile,
   type ExecutionLock,
   type OwnershipMarker,
@@ -268,7 +269,7 @@ async function readEvidence(
     jobIds.add(record.jobId);
     worktreePaths.add(record.path);
     const resolvedPath = path.resolve(record.path);
-    const expectedPath = path.join(canonicalRoot, "worktrees", record.jobId, "checkout");
+    const expectedPath = executionWorktreePath(canonicalRoot, record.jobId);
     if (
       resolvedPath !== record.path ||
       resolvedPath !== expectedPath ||

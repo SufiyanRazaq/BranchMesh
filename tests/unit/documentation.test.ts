@@ -21,6 +21,11 @@ const documentationFiles = [
   "docs/LIMITATIONS.md",
   "docs/TROUBLESHOOTING.md",
   "docs/JUDGE_TESTING.md",
+  "docs/SUBMISSION.md",
+  "docs/VIDEO_SCRIPT.md",
+  "docs/SCREENSHOT_CHECKLIST.md",
+  "docs/DEMO_RECORDING_CHECKLIST.md",
+  "docs/RELEASE_CHECKLIST.md",
 ] as const;
 
 describe("Milestone 6 documentation", () => {
@@ -43,6 +48,16 @@ describe("Milestone 6 documentation", () => {
     for (const link of links) {
       await expect(access(path.resolve(link))).resolves.toBeUndefined();
     }
+  });
+
+  it("keeps packed-install instructions aligned with the package version", async () => {
+    const readme = await readFile("README.md", "utf8");
+    const packageManifest = JSON.parse(await readFile("package.json", "utf8")) as {
+      version?: unknown;
+    };
+
+    expect(typeof packageManifest.version).toBe("string");
+    expect(readme).toContain(`branchmesh-${String(packageManifest.version)}.tgz`);
   });
 
   it("keeps documented configuration examples aligned with the Zod contract", async () => {

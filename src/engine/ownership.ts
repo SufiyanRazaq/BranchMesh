@@ -65,6 +65,14 @@ export type ExecutionLock = z.infer<typeof ExecutionLockSchema>;
 export type RunManifest = z.infer<typeof RunManifestSchema>;
 export type WorktreeRecord = z.infer<typeof WorktreeRecordSchema>;
 
+export function executionWorktreePath(executionRoot: string, jobId: string): string {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(jobId)) {
+    throw new TypeError("Worktree job IDs must be safe opaque path components");
+  }
+  const leafName = `checkout-${path.basename(executionRoot)}-${jobId}`;
+  return path.join(executionRoot, "worktrees", jobId, leafName);
+}
+
 export interface ExecutionOwnershipOptions {
   readonly runId: string;
   readonly repository: RepositoryIdentity;

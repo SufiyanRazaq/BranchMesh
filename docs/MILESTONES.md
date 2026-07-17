@@ -321,15 +321,56 @@ Milestone boundary and remaining verification note:
   environment with PyYAML remains a release check.
 - Milestone 6 is not committed, pushed, tagged, published, or otherwise released.
 
-## Milestone 7 — Not started: Release and submission verification
+## Milestone 7 — Prepared; automated acceptance passed: Release and submission verification
 
 Deliverables:
 
-- Prebuilt distribution, package archive, sample report, release verifier, screenshots, and
-  submission documentation.
+- Polished README, fastest judge path, source/local-package installation, supported-platform,
+  architecture, safety, configuration, limitation, and release-checklist guidance.
+- Devpost title/tagline/copy, technical narrative, evidence-safe Codex/GPT-5.6 wording, human
+  decision record, timestamped three-minute script, and screenshot/demo-recording checklists.
+- One real demo-generated, redacted, schema-valid result JSON and self-contained offline HTML
+  report under `docs/samples`.
+- Explicit unit, integration, and sample-report verification scripts plus private MVP package
+  version `0.1.0`.
 
-Acceptance gate:
+Automated acceptance evidence on 2026-07-17:
 
-- A fresh clone passes `npm ci`, `npm run verify`, and the deterministic demo.
-- Supported-platform claims, offline behavior, links, licensing, and submission evidence are
-  manually verified.
+- `npm run verify` passes in the primary checkout: formatting, zero-warning lint, strict
+  type-checking, 131 tests across 34 files, both tsup entries, the real demo, the checked-in report
+  validator, and the skill-wrapper demo.
+- A separate clean candidate clone followed the README commands. `npm ci`, formatting, lint,
+  type-checking, 63 unit tests, 68 integration tests, build, demo verification, report validation,
+  and skill verification all passed.
+- The real demo observed scan exit `1`, `BASE_PASS`, three `BRANCH_PASS` jobs, one clean-merge
+  `BEHAVIORAL_CONFLICT` with `PAIR_TEST_FAILURE`, two `NO_DETECTED_CONFLICT` pairs, no textual
+  conflicts, unchanged project state, and zero temporary worktrees.
+- `npm pack` generated an external eight-entry `branchmesh-0.1.0.tgz` containing README,
+  package metadata, and compiled CLI/contracts output. A fresh-prefix install passed help, both
+  version forms, invalid-input exit `2`, and the real demo's expected exit `1`; its JSON and
+  offline HTML were revalidated.
+- A clean-clone skill run exposed an intermittent Git administrative-name race between concurrent
+  worktree creation calls. A regression first observed concurrent administration and duplicate
+  checkout basenames. Worktree add/list/remove are now serialized within a run, owned checkout
+  basenames are run/job unique, and focused plus complete safety/cleanup suites pass.
+- Candidate scans found no personal absolute paths, secret-shaped values, package archives,
+  generated raw logs, runtime HTTP/model client, or accidental build output. Git lists only the
+  original BranchMesh worktree, and the operating-system temporary directory contains no
+  BranchMesh execution/demo/report-stage root.
+
+Remaining human acceptance gates:
+
+- Select a license, confirm the `0.1.0` version choice, and make/test the repository available to
+  judges.
+- Confirm primary-session model metadata before naming GPT-5.6 and manually exercise actual Codex
+  skill discovery.
+- Perform browser, keyboard, screen-reader, responsive, and print review.
+- Capture real screenshots, record/upload the under-three-minute video, obtain the primary
+  `/feedback` session ID, complete Devpost, and test every public link while logged out.
+- Linux and WSL release-matrix runs remain pending. Claims stay limited to implementation support;
+  native Windows, submodules, and Git LFS remain unsupported.
+
+Milestone boundary:
+
+- No screenshot, public URL, selected license, checked-in archive/prebuilt `dist`, release tag,
+  publication, push, or submission was created.

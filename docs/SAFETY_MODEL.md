@@ -62,7 +62,9 @@ commit. Synthetic merges:
 - scrub inherited Git context variables;
 - collect unresolved file names and porcelain status on failure.
 
-No global Git identity is required and repository hooks do not run.
+No global Git identity is required and repository hooks do not run. Worktree add, list, and remove
+operations are serialized within a scan so concurrent jobs cannot race while Git updates its
+shared worktree administration.
 
 ## Process boundary
 

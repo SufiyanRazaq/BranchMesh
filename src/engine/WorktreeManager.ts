@@ -2,17 +2,22 @@ import { lstat, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 
 import { assertGitSuccess } from "../git/GitClient.js";
-import type { GitClient } from "../git/GitClient.js";
+import type { GitClient, GitCommandOptions, GitCommandResult } from "../git/GitClient.js";
 import type { RepositoryIdentity } from "../git/RepositoryInspector.js";
 import { parseWorktreePorcelainZ } from "../git/WorktreeParser.js";
 import { isPathInside } from "../utils/paths.js";
-import type { ExecutionOwnership, WorktreeRecord } from "./ownership.js";
+import {
+  executionWorktreePath,
+  type ExecutionOwnership,
+  type WorktreeRecord,
+} from "./ownership.js";
 
 export class WorktreeManager {
   readonly #git: GitClient;
   readonly #repository: RepositoryIdentity;
   readonly #ownership: ExecutionOwnership;
   readonly #signal: AbortSignal | undefined;
+  #gitAdministrationTail: Promise<void> = Promise.resolve();
   #cleaned = false;
 
   public constructor(
@@ -32,12 +37,12 @@ export class WorktreeManager {
   }
 
   public async create(jobId: string, baseSha: string): Promise<string> {
-    const jobDirectory = path.join(this.#ownership.worktreesDirectory, jobId);
-    const worktreePath = path.join(jobDirectory, "checkout");
+    const worktreePath = executionWorktreePath(this.#ownership.root, jobId);
+    const jobDirectory = path.dirname(worktreePath);
     await mkdir(jobDirectory, { mode: 0o700 });
     await this.#ownership.registerWorktree(jobId, worktreePath);
 
-    const result = await this.#git.run(
+    const result = await this.#runGitAdministration(
       [
         "--git-dir",
         this.#repository.commonGitDirectory,
@@ -72,7 +77,7 @@ export class WorktreeManager {
     const registeredPaths = await this.listRepositoryWorktrees();
     if (registeredPaths.includes(record.path)) {
       await this.#ownership.assertOwnedPath(record.path);
-      const removal = await this.#git.run(
+      const removal = await this.#runGitAdministration(
         [
           "--git-dir",
           this.#repository.commonGitDirectory,
@@ -134,7 +139,7 @@ export class WorktreeManager {
 
   public async listRepositoryWorktrees(): Promise<string[]> {
     const result = assertGitSuccess(
-      await this.#git.run(
+      await this.#runGitAdministration(
         ["--git-dir", this.#repository.commonGitDirectory, "worktree", "list", "--porcelain", "-z"],
         { cwd: this.#ownership.root },
       ),
@@ -142,6 +147,18 @@ export class WorktreeManager {
     );
 
     return parseWorktreePorcelainZ(result.stdout).map((worktree) => path.resolve(worktree.path));
+  }
+
+  async #runGitAdministration(
+    args: readonly string[],
+    options: GitCommandOptions,
+  ): Promise<GitCommandResult> {
+    const run = this.#gitAdministrationTail.then(async () => await this.#git.run(args, options));
+    this.#gitAdministrationTail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return await run;
   }
 }
 

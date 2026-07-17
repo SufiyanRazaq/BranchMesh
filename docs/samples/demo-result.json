@@ -1,0 +1,411 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260717163338-cf988b0b",
+  "toolVersion": "0.1.0",
+  "repositoryRoot": "[redacted]",
+  "commonGitDirectory": "[redacted]",
+  "runtime": {
+    "nodeVersion": "25.9.0",
+    "gitVersion": "2.50.1",
+    "platform": "darwin",
+    "concurrency": 2
+  },
+  "startedAt": "2026-07-17T16:33:38.122Z",
+  "completedAt": "2026-07-17T16:33:43.241Z",
+  "durationMs": 5119,
+  "exitCode": 1,
+  "base": {
+    "ref": "main",
+    "fullRef": "refs/heads/main",
+    "sha": "e401286498fd542de1f20d749270f973f0675e15",
+    "changedFiles": [],
+    "dirty": false,
+    "worktreePath": null
+  },
+  "branches": [
+    {
+      "ref": "feature/config-seconds",
+      "fullRef": "refs/heads/feature/config-seconds",
+      "sha": "f615dfe7b433395aff6679bd908c7696c613b675",
+      "changedFiles": [
+        "src/config.js",
+        "src/retry.js"
+      ],
+      "dirty": false,
+      "worktreePath": null
+    },
+    {
+      "ref": "feature/jitter",
+      "fullRef": "refs/heads/feature/jitter",
+      "sha": "209ded26c5e8705200df29e4b26a13021be615e8",
+      "changedFiles": [
+        "src/jitter.js",
+        "test/jitter.test.js"
+      ],
+      "dirty": false,
+      "worktreePath": null
+    },
+    {
+      "ref": "feature/status-output",
+      "fullRef": "refs/heads/feature/status-output",
+      "sha": "f9ad9c551fbe8b6d930c2334efc07cbdacd692d4",
+      "changedFiles": [
+        "src/status.js",
+        "test/status.test.js"
+      ],
+      "dirty": false,
+      "worktreePath": null
+    }
+  ],
+  "jobs": [
+    {
+      "id": "base",
+      "kind": "base",
+      "baseSha": "e401286498fd542de1f20d749270f973f0675e15",
+      "branchRefs": [],
+      "branchShas": [],
+      "mergeOrder": [],
+      "classification": "BASE_PASS",
+      "technicalClassification": null,
+      "skipReason": null,
+      "failedCommandId": null,
+      "conflictedFiles": [],
+      "commands": [
+        {
+          "id": "test",
+          "label": "Tests",
+          "kind": "test",
+          "command": "node --test",
+          "timeoutMs": 30000,
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 529,
+          "status": "passed",
+          "timedOut": false,
+          "stdout": {
+            "text": "✔ the retry delay remains one second (2.50852ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 291.656099\n",
+            "totalBytes": 166,
+            "capturedBytes": 166,
+            "truncated": false
+          },
+          "stderr": {
+            "text": "",
+            "totalBytes": 0,
+            "capturedBytes": 0,
+            "truncated": false
+          }
+        }
+      ],
+      "startedAt": "2026-07-17T16:33:38.697Z",
+      "completedAt": "2026-07-17T16:33:39.305Z",
+      "durationMs": 608
+    },
+    {
+      "id": "branch-0",
+      "kind": "branch",
+      "baseSha": "e401286498fd542de1f20d749270f973f0675e15",
+      "branchRefs": [
+        "feature/config-seconds"
+      ],
+      "branchShas": [
+        "f615dfe7b433395aff6679bd908c7696c613b675"
+      ],
+      "mergeOrder": [
+        "feature/config-seconds"
+      ],
+      "classification": "BRANCH_PASS",
+      "technicalClassification": null,
+      "skipReason": null,
+      "failedCommandId": null,
+      "conflictedFiles": [],
+      "commands": [
+        {
+          "id": "test",
+          "label": "Tests",
+          "kind": "test",
+          "command": "node --test",
+          "timeoutMs": 30000,
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 664,
+          "status": "passed",
+          "timedOut": false,
+          "stdout": {
+            "text": "✔ the retry delay remains one second (2.57163ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 389.668568\n",
+            "totalBytes": 166,
+            "capturedBytes": 166,
+            "truncated": false
+          },
+          "stderr": {
+            "text": "",
+            "totalBytes": 0,
+            "capturedBytes": 0,
+            "truncated": false
+          }
+        }
+      ],
+      "startedAt": "2026-07-17T16:33:39.414Z",
+      "completedAt": "2026-07-17T16:33:40.233Z",
+      "durationMs": 819
+    },
+    {
+      "id": "branch-1",
+      "kind": "branch",
+      "baseSha": "e401286498fd542de1f20d749270f973f0675e15",
+      "branchRefs": [
+        "feature/jitter"
+      ],
+      "branchShas": [
+        "209ded26c5e8705200df29e4b26a13021be615e8"
+      ],
+      "mergeOrder": [
+        "feature/jitter"
+      ],
+      "classification": "BRANCH_PASS",
+      "technicalClassification": null,
+      "skipReason": null,
+      "failedCommandId": null,
+      "conflictedFiles": [],
+      "commands": [
+        {
+          "id": "test",
+          "label": "Tests",
+          "kind": "test",
+          "command": "node --test",
+          "timeoutMs": 30000,
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 676,
+          "status": "passed",
+          "timedOut": false,
+          "stdout": {
+            "text": "✔ jitter adds one hundred milliseconds (3.869694ms)\n✔ the retry delay remains one second (2.972635ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 394.42999\n",
+            "totalBytes": 220,
+            "capturedBytes": 220,
+            "truncated": false
+          },
+          "stderr": {
+            "text": "",
+            "totalBytes": 0,
+            "capturedBytes": 0,
+            "truncated": false
+          }
+        }
+      ],
+      "startedAt": "2026-07-17T16:33:39.414Z",
+      "completedAt": "2026-07-17T16:33:40.237Z",
+      "durationMs": 823
+    },
+    {
+      "id": "branch-2",
+      "kind": "branch",
+      "baseSha": "e401286498fd542de1f20d749270f973f0675e15",
+      "branchRefs": [
+        "feature/status-output"
+      ],
+      "branchShas": [
+        "f9ad9c551fbe8b6d930c2334efc07cbdacd692d4"
+      ],
+      "mergeOrder": [
+        "feature/status-output"
+      ],
+      "classification": "BRANCH_PASS",
+      "technicalClassification": null,
+      "skipReason": null,
+      "failedCommandId": null,
+      "conflictedFiles": [],
+      "commands": [
+        {
+          "id": "test",
+          "label": "Tests",
+          "kind": "test",
+          "command": "node --test",
+          "timeoutMs": 30000,
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 579,
+          "status": "passed",
+          "timedOut": false,
+          "stdout": {
+            "text": "✔ the retry delay remains one second (2.431514ms)\n✔ the retry status is ready (2.330902ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 330.211384\n",
+            "totalBytes": 210,
+            "capturedBytes": 210,
+            "truncated": false
+          },
+          "stderr": {
+            "text": "",
+            "totalBytes": 0,
+            "capturedBytes": 0,
+            "truncated": false
+          }
+        }
+      ],
+      "startedAt": "2026-07-17T16:33:40.355Z",
+      "completedAt": "2026-07-17T16:33:41.081Z",
+      "durationMs": 726
+    },
+    {
+      "id": "pair-0-1",
+      "kind": "pair",
+      "baseSha": "e401286498fd542de1f20d749270f973f0675e15",
+      "branchRefs": [
+        "feature/config-seconds",
+        "feature/jitter"
+      ],
+      "branchShas": [
+        "f615dfe7b433395aff6679bd908c7696c613b675",
+        "209ded26c5e8705200df29e4b26a13021be615e8"
+      ],
+      "mergeOrder": [
+        "feature/config-seconds",
+        "feature/jitter"
+      ],
+      "classification": "BEHAVIORAL_CONFLICT",
+      "technicalClassification": "PAIR_TEST_FAILURE",
+      "skipReason": null,
+      "failedCommandId": "test",
+      "conflictedFiles": [],
+      "commands": [
+        {
+          "id": "test",
+          "label": "Tests",
+          "kind": "test",
+          "command": "node --test",
+          "timeoutMs": 30000,
+          "exitCode": 1,
+          "signal": null,
+          "durationMs": 690,
+          "status": "failed",
+          "timedOut": false,
+          "stdout": {
+            "text": "✖ jitter adds one hundred milliseconds (8.100889ms)\n✔ the retry delay remains one second (3.926757ms)\nℹ tests 2\nℹ suites 0\nℹ pass 1\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 434.629427\n\n✖ failing tests:\n\ntest at test/jitter.test.js:6:1\n✖ jitter adds one hundred milliseconds (8.100889ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  NaN !== 1100\n  \n      at TestContext.<anonymous> (file://[redacted]/worktrees/pair-0-1/checkout/test/jitter.test.js:7:10)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1201:25)\n      at Test.start (node:internal/test_runner/test:1096:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: NaN,\n    expected: 1100,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n",
+            "totalBytes": 996,
+            "capturedBytes": 996,
+            "truncated": false
+          },
+          "stderr": {
+            "text": "",
+            "totalBytes": 0,
+            "capturedBytes": 0,
+            "truncated": false
+          }
+        }
+      ],
+      "startedAt": "2026-07-17T16:33:41.191Z",
+      "completedAt": "2026-07-17T16:33:42.096Z",
+      "durationMs": 905
+    },
+    {
+      "id": "pair-0-2",
+      "kind": "pair",
+      "baseSha": "e401286498fd542de1f20d749270f973f0675e15",
+      "branchRefs": [
+        "feature/config-seconds",
+        "feature/status-output"
+      ],
+      "branchShas": [
+        "f615dfe7b433395aff6679bd908c7696c613b675",
+        "f9ad9c551fbe8b6d930c2334efc07cbdacd692d4"
+      ],
+      "mergeOrder": [
+        "feature/config-seconds",
+        "feature/status-output"
+      ],
+      "classification": "NO_DETECTED_CONFLICT",
+      "technicalClassification": null,
+      "skipReason": null,
+      "failedCommandId": null,
+      "conflictedFiles": [],
+      "commands": [
+        {
+          "id": "test",
+          "label": "Tests",
+          "kind": "test",
+          "command": "node --test",
+          "timeoutMs": 30000,
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 678,
+          "status": "passed",
+          "timedOut": false,
+          "stdout": {
+            "text": "✔ the retry delay remains one second (2.397348ms)\n✔ the retry status is ready (2.768396ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 422.79623\n",
+            "totalBytes": 209,
+            "capturedBytes": 209,
+            "truncated": false
+          },
+          "stderr": {
+            "text": "",
+            "totalBytes": 0,
+            "capturedBytes": 0,
+            "truncated": false
+          }
+        }
+      ],
+      "startedAt": "2026-07-17T16:33:41.191Z",
+      "completedAt": "2026-07-17T16:33:42.081Z",
+      "durationMs": 890
+    },
+    {
+      "id": "pair-1-2",
+      "kind": "pair",
+      "baseSha": "e401286498fd542de1f20d749270f973f0675e15",
+      "branchRefs": [
+        "feature/jitter",
+        "feature/status-output"
+      ],
+      "branchShas": [
+        "209ded26c5e8705200df29e4b26a13021be615e8",
+        "f9ad9c551fbe8b6d930c2334efc07cbdacd692d4"
+      ],
+      "mergeOrder": [
+        "feature/jitter",
+        "feature/status-output"
+      ],
+      "classification": "NO_DETECTED_CONFLICT",
+      "technicalClassification": null,
+      "skipReason": null,
+      "failedCommandId": null,
+      "conflictedFiles": [],
+      "commands": [
+        {
+          "id": "test",
+          "label": "Tests",
+          "kind": "test",
+          "command": "node --test",
+          "timeoutMs": 30000,
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 691,
+          "status": "passed",
+          "timedOut": false,
+          "stdout": {
+            "text": "✔ jitter adds one hundred milliseconds (2.786429ms)\n✔ the retry delay remains one second (3.745604ms)\n✔ the retry status is ready (3.650767ms)\nℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 417.508649\n",
+            "totalBytes": 264,
+            "capturedBytes": 264,
+            "truncated": false
+          },
+          "stderr": {
+            "text": "",
+            "totalBytes": 0,
+            "capturedBytes": 0,
+            "truncated": false
+          }
+        }
+      ],
+      "startedAt": "2026-07-17T16:33:42.205Z",
+      "completedAt": "2026-07-17T16:33:43.122Z",
+      "durationMs": 917
+    }
+  ],
+  "summary": {
+    "branchCount": 3,
+    "pairCount": 3,
+    "passedBranches": 3,
+    "failedBranches": 0,
+    "passedPairs": 2,
+    "behavioralConflicts": 1,
+    "textualConflicts": 0,
+    "skippedPairs": 0
+  }
+}

@@ -569,3 +569,95 @@ Repository actions:
 
 - No commit, push, publication, tag, or release was performed for Milestone 6.
 - Milestone 7 was not started.
+
+## 2026-07-17 — Build Week submission preparation and release verification
+
+- **Status:** Automated release acceptance passed; human submission actions remain.
+- **Scope:** README and judge polish, submission copy/scripts/checklists, real sample artifacts,
+  package metadata and verification scripts, clean-clone/package verification, and one
+  regression-first Git-worktree concurrency correction. No publication or submission.
+
+Codex work:
+
+- Re-read the repository rules and authoritative architecture, safety, configuration, platform,
+  limitation, judge, milestone, decision, and release sections before editing.
+- Used bounded read-only audits to check judge usability, unsupported claims, required submission
+  copy, and release gaps. The primary agent validated each recommendation against the live
+  contracts before applying it.
+- Reworked the README around the two-command judge path, source and local-archive installation,
+  exact demo exit semantics, retained report inspection, supported-platform evidence, safety,
+  limitations, full verification, and links to every submission asset.
+- Added Devpost title/tagline/problem/solution/features/technical narrative, evidence-safe
+  Codex/GPT-5.6 variants, human decision/supervision narrative, a timestamped English video script,
+  screenshot and recording checklists, and a machine/human release checklist.
+- Set the private unpublished MVP package version to `0.1.0`; added explicit unit, integration,
+  and sample-report scripts; kept runtime dependencies unchanged.
+- Generated `docs/samples/demo-result.json` and `demo-report.html` with the production CLI in a
+  fresh external directory. The direct scan exited `1` with the accepted deterministic
+  behavioral conflict. Only redacted JSON and the self-contained HTML were copied; raw logs and
+  temporary fixture/output directories were not added.
+- Added sample-artifact tests that parse the JSON with `RunResultSchema`, parse the embedded HTML
+  projection with `ReportProjectionSchema`, check the accepted classifications, and enforce
+  offline/redaction/script-boundary properties.
+
+Defect found and corrected:
+
+- The first complete local verification found an ESLint violation in the new ANSI assertion. It
+  was corrected to the repository's existing string-based control-sequence check; lint then
+  passed.
+- A clean-clone skill verification exposed an intermittent failure in concurrent
+  `git worktree add`: every job path ended in `checkout`, so Git administrative-name creation
+  could race. Before production changes, a regression proved two administrative commands could
+  overlap and two worktrees shared the same leaf basename.
+- `WorktreeManager` now serializes add/list/remove calls that mutate or inspect the shared Git
+  worktree administration while leaving job validation bounded-concurrent. Owned checkout leaf
+  names include the collision-resistant run directory and safe job ID. `CleanupManager` derives
+  the same exact expected path, and unsafe job IDs are rejected before directory creation.
+- The regression first failed with maximum concurrency two and one basename, then passed with
+  maximum concurrency one and two unique basenames. Focused ownership, cleanup, lifecycle, lint,
+  and type checks passed before the complete suite.
+- A later aggregate repeat exposed a test-only portability threshold: the process-tree fixture's
+  750 ms timeout could expire before a short base/individual Node process started under parallel
+  load, correctly triggering the base gate and leaving no pair to assert. The test now allows five
+  seconds for startup/timeout and moves its descendant marker later by the same margin; it still
+  proves child/grandchild termination. The interruption scenario received a diagnostic assertion
+  and passed ten consecutive focused repetitions. The complete 131-test suite then passed again.
+
+Verification:
+
+- Primary checkout `npm run verify` passed: format, lint, strict TypeScript, 131 tests across 34
+  files, tsup build, real demo verification, checked-in offline-report verification, and
+  skill-wrapper verification.
+- A fresh local candidate Git repository and separate clean clone were created only beneath a
+  temporary directory so the uncommitted candidate could be tested without committing the real
+  repository. Following the README there passed `npm ci`, format, lint, type-check, 63 unit
+  tests, 68 integration tests, build, demo, report, and skill-wrapper checks.
+- A preliminary source archive without `.git` passed installation through build, but the demo
+  harness correctly could not perform its enclosing-repository preservation assertion. The final
+  allowed clean-clone path retained that Git evidence and passed.
+- `npm pack` used an explicit external cache because the host's personal npm cache contains
+  inaccessible entries. It produced eight intended archive entries: README, package manifest, and
+  compiled CLI/contracts JavaScript, declarations, and source maps.
+- The archive installed into an empty temporary prefix. Help and both version forms exited `0`,
+  malformed input exited `2`, and the installed real demo exited `1` with three individual
+  passes, one `BEHAVIORAL_CONFLICT`/`PAIR_TEST_FAILURE`, two `NO_DETECTED_CONFLICT` pairs,
+  unchanged fixture evidence, and zero temporary worktrees. Its result and offline HTML were
+  revalidated through the packed contracts.
+- Content scans found no personal absolute paths, common secret-shaped values, runtime network or
+  model client, package archive, raw log, `node_modules`, `dist`, coverage, or personal cache
+  path in the candidate. The package lock's registry URLs are installation metadata, not runtime
+  clients.
+- Git lists only the original BranchMesh worktree. `os.tmpdir()` contained no
+  `branchmesh-run-*`, `branchmesh-demo-*`, `branchmesh-report-stage-*`, or
+  `branchmesh-skill-verify-*` root after verification.
+
+Human decisions and remaining gates:
+
+- The release copy does not claim Linux/WSL execution, manual accessibility review, public link
+  availability, screenshots, submission, or a GPT-5.6 model version without evidence.
+- The repository owner must select a license; confirm `0.1.0`; verify repository access, actual
+  Codex skill discovery, and primary-session model metadata; perform browser/accessibility and
+  Linux/WSL checks as desired; capture screenshots; record/upload the video; obtain the primary
+  `/feedback` session ID; complete Devpost; and test links logged out.
+- Work began from a clean real repository at `c0a43d1`, with `origin/main` already at the same
+  commit. This preparation did not commit, push, tag, publish, upload, or submit anything.

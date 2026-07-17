@@ -40,8 +40,10 @@ BranchMesh deliberately keeps the MVP narrow.
 - The package is private and not published to npm.
 - The repository skill is discovered from this checkout; installing or linking only the packed CLI
   does not copy the skill into another repository.
-- Prebuilt `dist`, a release archive, sample report, and screenshots belong to the final release
-  milestone and are not yet tracked.
+- A real generated sample JSON/HTML report is tracked under `docs/samples`. Compiled `dist`, local
+  package archives, raw demo logs, and screenshots are deliberately not tracked.
+- Public repository/video URLs, a selected license, actual host skill discovery, screenshots, and
+  manual browser/accessibility review remain human submission gates.
 
 ## Product scope
 
