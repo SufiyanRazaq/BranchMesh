@@ -111,7 +111,7 @@ Each job:
 3. merges zero, one, or two captured branch commits;
 4. runs optional setup and ordered validation commands until the first failure;
 5. classifies Git/command evidence;
-6. terminates and awaits any process descendants;
+6. terminates group-contained process descendants while a dedicated group leader remains live;
 7. removes the exact ownership-proven worktree in `finally`.
 
 Git worktree add, list, and remove operations are serialized within a run because they share one
@@ -125,8 +125,12 @@ Internal Git uses argv arrays and `shell: false`. Only unchanged configured stri
 ## Cancellation, locks, and recovery
 
 One root AbortController receives SIGINT/SIGTERM and prevents new work while active Git/command
-process groups are terminated and awaited. Durable run locks identify the owner PID. Per-worktree
-activity moves through `idle`, `git`, and `command` before/after process launch.
+process groups are terminated and awaited. Configured commands run beneath a small `shell: false`
+Node supervisor which remains the POSIX process-group leader until the unchanged command string and
+its group-contained descendants have exited or been killed. A termination result that cannot be
+proved leaves the worktree activity non-idle and preserves the owned root. Durable run locks
+identify the owner PID. Per-worktree activity moves through `idle`, `git`, and `command`
+before/after process launch.
 
 Normal cleanup verifies canonical containment, no-follow ownership token, run/repository identity,
 manifest membership, and exact Git worktree membership. `branchmesh clean` adds stale-owner,

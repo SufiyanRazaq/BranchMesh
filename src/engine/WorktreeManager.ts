@@ -6,6 +6,7 @@ import type { GitClient, GitCommandOptions, GitCommandResult } from "../git/GitC
 import type { RepositoryIdentity } from "../git/RepositoryInspector.js";
 import { parseWorktreePorcelainZ } from "../git/WorktreeParser.js";
 import { isPathInside } from "../utils/paths.js";
+import { isProcessTreeTerminationError } from "../utils/processTree.js";
 import {
   executionWorktreePath,
   type ExecutionOwnership,
@@ -16,7 +17,6 @@ export class WorktreeManager {
   readonly #git: GitClient;
   readonly #repository: RepositoryIdentity;
   readonly #ownership: ExecutionOwnership;
-  readonly #signal: AbortSignal | undefined;
   #gitAdministrationTail: Promise<void> = Promise.resolve();
   #cleaned = false;
 
@@ -26,10 +26,12 @@ export class WorktreeManager {
     ownership: ExecutionOwnership,
     signal?: AbortSignal,
   ) {
+    // The signal is intentionally observed by scheduling code, not by ownership-critical Git
+    // administration. Retaining the parameter keeps the manager boundary explicit.
+    void signal;
     this.#git = git;
     this.#repository = repository;
     this.#ownership = ownership;
-    this.#signal = signal;
   }
 
   public get executionRoot(): string {
@@ -42,21 +44,30 @@ export class WorktreeManager {
     await mkdir(jobDirectory, { mode: 0o700 });
     await this.#ownership.registerWorktree(jobId, worktreePath);
 
-    const result = await this.#runGitAdministration(
-      [
-        "--git-dir",
-        this.#repository.commonGitDirectory,
-        "-c",
-        `core.hooksPath=${this.#ownership.hooksDirectory}`,
-        "worktree",
-        "add",
-        "--detach",
-        worktreePath,
-        baseSha,
-      ],
-      { cwd: this.#ownership.root, signal: this.#signal },
-    );
-    assertGitSuccess(result, `Detached worktree creation for ${jobId}`);
+    try {
+      const result = await this.#runGitAdministration(
+        [
+          "--git-dir",
+          this.#repository.commonGitDirectory,
+          "-c",
+          `core.hooksPath=${this.#ownership.hooksDirectory}`,
+          "worktree",
+          "add",
+          "--detach",
+          worktreePath,
+          baseSha,
+        ],
+        // Registration is ownership-critical: let Git finish, then observe root cancellation and
+        // remove the exact owned worktree. Killing `worktree add` can strand partial Git metadata.
+        { cwd: this.#ownership.root },
+      );
+      assertGitSuccess(result, `Detached worktree creation for ${jobId}`);
+    } catch (error: unknown) {
+      if (!isProcessTreeTerminationError(error)) {
+        await this.#ownership.updateWorktree(jobId, { activity: "idle" });
+      }
+      throw error;
+    }
     await this.#ownership.updateWorktree(jobId, { state: "active", activity: "idle" });
     return worktreePath;
   }
@@ -69,6 +80,11 @@ export class WorktreeManager {
     const record = this.#ownership.findWorktree(jobId);
     if (record === undefined || record.state === "removed") {
       return;
+    }
+    if (record.activity !== "idle") {
+      throw new Error(
+        `Worktree ${jobId} process activity is ${record.activity}; preserving owned state`,
+      );
     }
 
     await this.#ownership.verify();

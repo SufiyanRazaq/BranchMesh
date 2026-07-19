@@ -6,7 +6,8 @@ release verification.
 
 ## Automated source gates
 
-- [x] Clean candidate clone installs with `npm ci`.
+- [x] The prior clean candidate clone installed with `npm ci`; the current uncommitted delta passes
+      in the primary checkout and as a fresh packed-prefix install.
 - [x] Formatting check passes.
 - [x] Lint passes with zero warnings.
 - [x] Strict TypeScript check passes.
@@ -17,6 +18,7 @@ release verification.
 - [x] Checked-in result and offline HTML samples pass contract/offline validation.
 - [x] Repository-scoped skill wrapper verification passes.
 - [x] `npm pack` succeeds outside the repository.
+- [x] The archive contains exactly the intended nine files, including `LICENSE`.
 - [x] Packed CLI installs into an empty temporary prefix.
 - [x] Packed CLI help, version, invalid-input, and real-demo behavior match the contract.
 
@@ -29,7 +31,8 @@ release verification.
 - [x] Documentation distinguishes BranchMesh runtime from user-configured commands that may use
       the network.
 - [x] No candidate secret, personal path, token, temporary fixture, generated raw log, package
-      archive, `node_modules`, `dist`, or coverage output exists.
+      archive, `node_modules`, `dist`, or coverage output is tracked or included in a proposed
+      commit.
 - [x] Sample JSON validates through `RunResultSchema`.
 - [x] Sample HTML's embedded projection validates through `ReportProjectionSchema`.
 - [x] Sample HTML has no external assets, fetch call, analytics, or runtime request.
@@ -37,8 +40,8 @@ release verification.
 
 ## Human release gates
 
-- [ ] Select and add the intended license.
-- [ ] Confirm whether `0.1.0` is the desired MVP version.
+- [x] Add the MIT License with the approved copyright notice.
+- [x] Confirm `0.1.0` as the release-candidate version.
 - [ ] Make the repository public or share it with judges as required.
 - [ ] Test the repository URL while logged out.
 - [ ] Confirm primary Codex session metadata before naming GPT-5.6.
@@ -52,3 +55,14 @@ release verification.
 - [ ] Fill Devpost repository, video, installation, testing, and session-ID fields.
 - [ ] Test every submission link while logged out.
 - [ ] Submit before the event deadline.
+
+## Known release risk
+
+- An earlier macOS interruption repetition intermittently returned a process-group `EPERM`
+  instead of the expected interruption. Release-candidate stress testing reproduced the race in
+  configured-command termination, internal Git cancellation, and interrupted `git worktree add`.
+  Regression-first corrections now avoid stale process-group signals, fail closed when termination
+  cannot be proven, preserve non-idle owned roots, and allow ownership-critical worktree
+  registration to finish before exact cleanup. The final focused gate passed 20 consecutive fresh
+  Vitest processes (60/60 cases) on macOS. This remains a portability risk until the same stress
+  gate is executed on Linux and WSL; those environments were not executed in this release session.

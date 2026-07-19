@@ -2,6 +2,7 @@ import { parseScanConfig, type ScanConfig } from "../config/schema.js";
 import { GitClient } from "../git/GitClient.js";
 import { RepositoryInspector, type RepositorySnapshot } from "../git/RepositoryInspector.js";
 import { createAbortError } from "../model/errors.js";
+import { isProcessTreeTerminationError } from "../utils/processTree.js";
 import {
   JobResultSchema,
   RunResultSchema,
@@ -287,10 +288,12 @@ async function executeJob(
 
   try {
     const worktreePath = await context.worktrees.create(id, context.snapshot.base.sha);
-    await context.worktrees.setActivity(id, "git");
-    const merge = await context.mergeRunner
-      .merge(worktreePath, branches)
-      .finally(async () => await context.worktrees.setActivity(id, "idle"));
+    const merge = await runWithWorktreeActivity(
+      context,
+      id,
+      "git",
+      async () => await context.mergeRunner.merge(worktreePath, branches),
+    );
     if (!merge.merged) {
       return createJobResult({
         id,
@@ -309,13 +312,16 @@ async function executeJob(
 
     const commands = [];
     for (const command of context.commands) {
-      await context.worktrees.setActivity(id, "command");
-      const execution = await context.commandRunner
-        .run(command, worktreePath, {
-          signal: context.signal,
-          maximumLogBytes: context.maximumLogBytes,
-        })
-        .finally(async () => await context.worktrees.setActivity(id, "idle"));
+      const execution = await runWithWorktreeActivity(
+        context,
+        id,
+        "command",
+        async () =>
+          await context.commandRunner.run(command, worktreePath, {
+            signal: context.signal,
+            maximumLogBytes: context.maximumLogBytes,
+          }),
+      );
       await context.reportPublisher.stageCommandLogs(id, commands.length, command.id, execution);
       commands.push(execution.result);
       if (execution.result.status !== "passed") {
@@ -374,6 +380,25 @@ async function executeJob(
     });
   } finally {
     await context.worktrees.cleanup(id);
+  }
+}
+
+async function runWithWorktreeActivity<T>(
+  context: JobExecutionContext,
+  jobId: string,
+  activity: "git" | "command",
+  operation: () => Promise<T>,
+): Promise<T> {
+  await context.worktrees.setActivity(jobId, activity);
+  try {
+    const result = await operation();
+    await context.worktrees.setActivity(jobId, "idle");
+    return result;
+  } catch (error: unknown) {
+    if (!isProcessTreeTerminationError(error)) {
+      await context.worktrees.setActivity(jobId, "idle");
+    }
+    throw error;
   }
 }
 

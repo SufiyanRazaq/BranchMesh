@@ -74,12 +74,15 @@ are never interpolated into configured command strings.
 
 User-configured setup and validation strings are the sole `shell: true` boundary. They run
 unchanged inside the detached worktree. They are user-selected project programs and may perform
-arbitrary local or network behavior; inspect configuration before scanning.
+arbitrary local or network behavior; inspect configuration before scanning and do not configure a
+program that deliberately daemonizes into another session or process group.
 
-The command runner starts a POSIX process group, captures bounded stdout and stderr separately,
-and records exit, signal, timeout, and duration. On timeout or cancellation it terminates the
-complete process tree, waits for process closure, and only then permits worktree cleanup. One root
-AbortController receives SIGINT/SIGTERM and stops new scheduling.
+The command runner starts a POSIX process group beneath a dedicated Node supervisor, captures
+bounded stdout and stderr separately, and records exit, signal, timeout, and duration. The
+supervisor stays alive as the group leader until BranchMesh terminates group-contained descendants
+and observes closure, preventing a final signal from targeting a reused process-group ID. If
+termination cannot be verified, activity remains non-idle and the owned worktree is preserved
+instead of deleted. One root AbortController receives SIGINT/SIGTERM and stops new scheduling.
 
 ## Ownership-verified cleanup
 

@@ -185,5 +185,5 @@ and Git LFS repositories are deliberately rejected.
 
 BranchMesh has no runtime HTTP/model client. User-configured project commands are ordinary shell
 commands and may access the network. The checked-in report is real demo output; screenshots, public
-links, license selection, actual Codex host discovery, model-version attribution, and manual
-browser/accessibility review remain human submission gates.
+links, actual Codex host discovery, model-version attribution, and manual browser/accessibility
+review remain human submission gates.

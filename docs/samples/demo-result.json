@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "runId": "20260717163338-cf988b0b",
+  "runId": "20260717194641-77659191",
   "toolVersion": "0.1.0",
   "repositoryRoot": "[redacted]",
   "commonGitDirectory": "[redacted]",
@@ -10,9 +10,9 @@
     "platform": "darwin",
     "concurrency": 2
   },
-  "startedAt": "2026-07-17T16:33:38.122Z",
-  "completedAt": "2026-07-17T16:33:43.241Z",
-  "durationMs": 5119,
+  "startedAt": "2026-07-17T19:46:40.550Z",
+  "completedAt": "2026-07-17T19:46:46.631Z",
+  "durationMs": 6081,
   "exitCode": 1,
   "base": {
     "ref": "main",
@@ -79,13 +79,13 @@
           "timeoutMs": 30000,
           "exitCode": 0,
           "signal": null,
-          "durationMs": 529,
+          "durationMs": 724,
           "status": "passed",
           "timedOut": false,
           "stdout": {
-            "text": "✔ the retry delay remains one second (2.50852ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 291.656099\n",
-            "totalBytes": 166,
-            "capturedBytes": 166,
+            "text": "✔ the retry delay remains one second (2.448859ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 285.545934\n",
+            "totalBytes": 167,
+            "capturedBytes": 167,
             "truncated": false
           },
           "stderr": {
@@ -96,9 +96,9 @@
           }
         }
       ],
-      "startedAt": "2026-07-17T16:33:38.697Z",
-      "completedAt": "2026-07-17T16:33:39.305Z",
-      "durationMs": 608
+      "startedAt": "2026-07-17T19:46:41.141Z",
+      "completedAt": "2026-07-17T19:46:41.945Z",
+      "durationMs": 804
     },
     {
       "id": "branch-0",
@@ -127,13 +127,13 @@
           "timeoutMs": 30000,
           "exitCode": 0,
           "signal": null,
-          "durationMs": 664,
+          "durationMs": 757,
           "status": "passed",
           "timedOut": false,
           "stdout": {
-            "text": "✔ the retry delay remains one second (2.57163ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 389.668568\n",
-            "totalBytes": 166,
-            "capturedBytes": 166,
+            "text": "✔ the retry delay remains one second (2.944625ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 302.233755\n",
+            "totalBytes": 167,
+            "capturedBytes": 167,
             "truncated": false
           },
           "stderr": {
@@ -144,9 +144,9 @@
           }
         }
       ],
-      "startedAt": "2026-07-17T16:33:39.414Z",
-      "completedAt": "2026-07-17T16:33:40.233Z",
-      "durationMs": 819
+      "startedAt": "2026-07-17T19:46:42.061Z",
+      "completedAt": "2026-07-17T19:46:42.963Z",
+      "durationMs": 902
     },
     {
       "id": "branch-1",
@@ -175,13 +175,13 @@
           "timeoutMs": 30000,
           "exitCode": 0,
           "signal": null,
-          "durationMs": 676,
+          "durationMs": 767,
           "status": "passed",
           "timedOut": false,
           "stdout": {
-            "text": "✔ jitter adds one hundred milliseconds (3.869694ms)\n✔ the retry delay remains one second (2.972635ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 394.42999\n",
-            "totalBytes": 220,
-            "capturedBytes": 220,
+            "text": "✔ jitter adds one hundred milliseconds (3.810665ms)\n✔ the retry delay remains one second (2.812525ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 314.101347\n",
+            "totalBytes": 221,
+            "capturedBytes": 221,
             "truncated": false
           },
           "stderr": {
@@ -192,9 +192,9 @@
           }
         }
       ],
-      "startedAt": "2026-07-17T16:33:39.414Z",
-      "completedAt": "2026-07-17T16:33:40.237Z",
-      "durationMs": 823
+      "startedAt": "2026-07-17T19:46:42.061Z",
+      "completedAt": "2026-07-17T19:46:43.025Z",
+      "durationMs": 964
     },
     {
       "id": "branch-2",
@@ -223,11 +223,11 @@
           "timeoutMs": 30000,
           "exitCode": 0,
           "signal": null,
-          "durationMs": 579,
+          "durationMs": 752,
           "status": "passed",
           "timedOut": false,
           "stdout": {
-            "text": "✔ the retry delay remains one second (2.431514ms)\n✔ the retry status is ready (2.330902ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 330.211384\n",
+            "text": "✔ the retry delay remains one second (2.508352ms)\n✔ the retry status is ready (3.387951ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 314.405109\n",
             "totalBytes": 210,
             "capturedBytes": 210,
             "truncated": false
@@ -240,9 +240,9 @@
           }
         }
       ],
-      "startedAt": "2026-07-17T16:33:40.355Z",
-      "completedAt": "2026-07-17T16:33:41.081Z",
-      "durationMs": 726
+      "startedAt": "2026-07-17T19:46:43.126Z",
+      "completedAt": "2026-07-17T19:46:44.049Z",
+      "durationMs": 923
     },
     {
       "id": "pair-0-1",
@@ -274,13 +274,13 @@
           "timeoutMs": 30000,
           "exitCode": 1,
           "signal": null,
-          "durationMs": 690,
+          "durationMs": 810,
           "status": "failed",
           "timedOut": false,
           "stdout": {
-            "text": "✖ jitter adds one hundred milliseconds (8.100889ms)\n✔ the retry delay remains one second (3.926757ms)\nℹ tests 2\nℹ suites 0\nℹ pass 1\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 434.629427\n\n✖ failing tests:\n\ntest at test/jitter.test.js:6:1\n✖ jitter adds one hundred milliseconds (8.100889ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  NaN !== 1100\n  \n      at TestContext.<anonymous> (file://[redacted]/worktrees/pair-0-1/checkout/test/jitter.test.js:7:10)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1201:25)\n      at Test.start (node:internal/test_runner/test:1096:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: NaN,\n    expected: 1100,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n",
-            "totalBytes": 996,
-            "capturedBytes": 996,
+            "text": "✖ jitter adds one hundred milliseconds (5.268544ms)\n✔ the retry delay remains one second (2.509939ms)\nℹ tests 2\nℹ suites 0\nℹ pass 1\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 351.185963\n\n✖ failing tests:\n\ntest at test/jitter.test.js:6:1\n✖ jitter adds one hundred milliseconds (5.268544ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  NaN !== 1100\n  \n      at TestContext.<anonymous> (file://[redacted]/worktrees/pair-0-1/checkout-branchmesh-run-bWus5w-pair-0-1/test/jitter.test.js:7:10)\n      at Test.runInAsyncScope (node:async_hooks:226:14)\n      at Test.run (node:internal/test_runner/test:1201:25)\n      at Test.start (node:internal/test_runner/test:1096:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: NaN,\n    expected: 1100,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n",
+            "totalBytes": 1027,
+            "capturedBytes": 1027,
             "truncated": false
           },
           "stderr": {
@@ -291,9 +291,9 @@
           }
         }
       ],
-      "startedAt": "2026-07-17T16:33:41.191Z",
-      "completedAt": "2026-07-17T16:33:42.096Z",
-      "durationMs": 905
+      "startedAt": "2026-07-17T19:46:44.162Z",
+      "completedAt": "2026-07-17T19:46:45.197Z",
+      "durationMs": 1035
     },
     {
       "id": "pair-0-2",
@@ -325,13 +325,13 @@
           "timeoutMs": 30000,
           "exitCode": 0,
           "signal": null,
-          "durationMs": 678,
+          "durationMs": 807,
           "status": "passed",
           "timedOut": false,
           "stdout": {
-            "text": "✔ the retry delay remains one second (2.397348ms)\n✔ the retry status is ready (2.768396ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 422.79623\n",
-            "totalBytes": 209,
-            "capturedBytes": 209,
+            "text": "✔ the retry delay remains one second (2.990305ms)\n✔ the retry status is ready (3.178146ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 356.056821\n",
+            "totalBytes": 210,
+            "capturedBytes": 210,
             "truncated": false
           },
           "stderr": {
@@ -342,9 +342,9 @@
           }
         }
       ],
-      "startedAt": "2026-07-17T16:33:41.191Z",
-      "completedAt": "2026-07-17T16:33:42.081Z",
-      "durationMs": 890
+      "startedAt": "2026-07-17T19:46:44.163Z",
+      "completedAt": "2026-07-17T19:46:45.256Z",
+      "durationMs": 1093
     },
     {
       "id": "pair-1-2",
@@ -376,13 +376,13 @@
           "timeoutMs": 30000,
           "exitCode": 0,
           "signal": null,
-          "durationMs": 691,
+          "durationMs": 747,
           "status": "passed",
           "timedOut": false,
           "stdout": {
-            "text": "✔ jitter adds one hundred milliseconds (2.786429ms)\n✔ the retry delay remains one second (3.745604ms)\n✔ the retry status is ready (3.650767ms)\nℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 417.508649\n",
-            "totalBytes": 264,
-            "capturedBytes": 264,
+            "text": "✔ jitter adds one hundred milliseconds (2.846379ms)\n✔ the retry delay remains one second (2.95103ms)\n✔ the retry status is ready (2.933765ms)\nℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 318.402103\n",
+            "totalBytes": 263,
+            "capturedBytes": 263,
             "truncated": false
           },
           "stderr": {
@@ -393,9 +393,9 @@
           }
         }
       ],
-      "startedAt": "2026-07-17T16:33:42.205Z",
-      "completedAt": "2026-07-17T16:33:43.122Z",
-      "durationMs": 917
+      "startedAt": "2026-07-17T19:46:45.544Z",
+      "completedAt": "2026-07-17T19:46:46.524Z",
+      "durationMs": 980
     }
   ],
   "summary": {

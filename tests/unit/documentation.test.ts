@@ -60,6 +60,21 @@ describe("Milestone 6 documentation", () => {
     expect(readme).toContain(`branchmesh-${String(packageManifest.version)}.tgz`);
   });
 
+  it("keeps the MIT license file and package metadata aligned", async () => {
+    const packageManifest = JSON.parse(await readFile("package.json", "utf8")) as {
+      license?: unknown;
+    };
+    const packageLock = JSON.parse(await readFile("package-lock.json", "utf8")) as {
+      packages?: Record<string, { license?: unknown }>;
+    };
+    const license = await readFile("LICENSE", "utf8");
+
+    expect(packageManifest.license).toBe("MIT");
+    expect(packageLock.packages?.[""]?.license).toBe("MIT");
+    expect(license).toContain("MIT License");
+    expect(license).toContain("Copyright (c) 2026 Sufiyan Razaq");
+  });
+
   it("keeps documented configuration examples aligned with the Zod contract", async () => {
     for (const file of ["README.md", "docs/CONFIGURATION.md"] as const) {
       const source = await readFile(file, "utf8");

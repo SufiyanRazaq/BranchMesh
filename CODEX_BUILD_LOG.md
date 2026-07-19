@@ -655,9 +655,63 @@ Human decisions and remaining gates:
 
 - The release copy does not claim Linux/WSL execution, manual accessibility review, public link
   availability, screenshots, submission, or a GPT-5.6 model version without evidence.
-- The repository owner must select a license; confirm `0.1.0`; verify repository access, actual
-  Codex skill discovery, and primary-session model metadata; perform browser/accessibility and
-  Linux/WSL checks as desired; capture screenshots; record/upload the video; obtain the primary
-  `/feedback` session ID; complete Devpost; and test links logged out.
+- At this checkpoint the repository owner still needed to select a license and confirm `0.1.0`;
+  those decisions were made in the later 0.1.0 release-candidate preparation. Repository access,
+  actual Codex skill discovery, primary-session model metadata, browser/accessibility review,
+  Linux/WSL execution, screenshots, video, the primary `/feedback` session ID, Devpost, and
+  logged-out link checks remained manual.
 - Work began from a clean real repository at `c0a43d1`, with `origin/main` already at the same
   commit. This preparation did not commit, push, tag, publish, upload, or submit anything.
+
+## BranchMesh 0.1.0 release-candidate follow-up — 2026-07-17
+
+Repository-state evidence:
+
+- At the start of this follow-up, `HEAD` and `origin/main` were both
+  `89b3f799e421233d59bc5711e437515ab780facd`. That already-pushed commit contained exactly the 24
+  paths described by the request as unstaged. The earlier `c0a43d1` commit was not amended or
+  rewritten, and this work did not stage, commit, push, tag, publish, upload, or submit anything.
+- The 24-path set was reviewed from Git history and categorized separately from the new follow-up
+  delta so the release handoff does not misstate committed files as unstaged files.
+
+Release-candidate corrections:
+
+- Added the approved MIT License with `Copyright (c) 2026 Sufiyan Razaq` and aligned both package
+  manifests. Updated public documentation to distinguish macOS execution from implementation-only
+  Linux/WSL support, keep native Windows unsupported, disclose retained report evidence, and avoid
+  any general safety guarantee.
+- Reproduced the intermittent macOS interruption failure through fresh-process repetition. The
+  observed races included process-group `EPERM`, a stale post-exit group signal, and interrupted
+  worktree registration that could leave Git administrative state. Regression tests preceded the
+  corresponding corrections.
+- Configured commands now run under a `shell: false` Node supervisor which holds the POSIX
+  process-group leader alive while the unchanged configured string crosses the sole `shell: true`
+  boundary. Final group termination cannot address a reaped/reused leader ID. Unverifiable
+  termination leaves manifest activity non-idle and preserves the owned root; ownership-critical
+  `git worktree add` is allowed to finish before exact cancellation cleanup.
+- A separate regression proved a leading-hyphen configured string was being parsed as a Node
+  option. Adding Node's `--` terminator made it a normal shell-observed command result without
+  changing or concatenating configured text.
+- Two final 20-process focused sequences passed after stabilization; the last sequence followed
+  the command-option fix and covered 60/60 interruption, child/grandchild, cleanup,
+  publication-failure, and original-state cases. The earlier failure remains a documented
+  portability risk because Linux and WSL were not executed.
+- Regenerated the checked-in result JSON and offline HTML from the real production demo. Contract,
+  offline, escaping, redaction, and privacy checks passed; no raw log or temporary fixture was
+  copied into the repository.
+
+Verification:
+
+- Final `npm run verify` passed formatting, zero-warning lint, strict TypeScript, 142 tests across
+  35 files, build, deterministic demo verification, checked-in offline-report validation, and the
+  repository skill wrapper on macOS.
+- The demo scan returned the expected exit `1`: `BASE_PASS`, three `BRANCH_PASS` jobs, one
+  clean-merge `BEHAVIORAL_CONFLICT` with `PAIR_TEST_FAILURE`, two `NO_DETECTED_CONFLICT` pairs,
+  unchanged original state, and zero temporary worktrees.
+- `npm pack` created a nine-file archive containing `LICENSE`, README, package metadata, and six
+  compiled artifacts. After the sandbox's initial empty-cache install correctly reported blocked
+  registry DNS, an approved registry retry installed the local archive into a fresh temporary
+  prefix. Help, both version forms, invalid input, demo exit `1`, packed result-contract parsing,
+  offline behavior, and archive privacy checks passed.
+- All release-specific temporary sample, package, install, extraction, log, and fixture directories
+  created during this follow-up were removed after validation.

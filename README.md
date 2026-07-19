@@ -106,7 +106,7 @@ npm install --cache /tmp/branchmesh-npm-cache --prefix /tmp/branchmesh-install /
 /tmp/branchmesh-install/node_modules/.bin/branchmesh --help
 ```
 
-The archive contains the README, package metadata, and compiled `dist` output. The
+The archive contains the MIT License, README, package metadata, and compiled `dist` output. The
 repository-scoped Codex skill remains in this checkout and is not installed by the CLI archive.
 
 ## Real-repository usage
@@ -199,7 +199,8 @@ See the complete [classification reference](docs/CLASSIFICATIONS.md).
 
 ## Safety model
 
-BranchMesh guarantees its operational boundaries, not the absence of software defects:
+BranchMesh is designed to enforce these operational boundaries; it does not establish the absence
+of software defects:
 
 - no merge, checkout, reset, clean, stash, or rebase in a user worktree;
 - full captured commit IDs for all jobs;
@@ -208,13 +209,15 @@ BranchMesh guarantees its operational boundaries, not the absence of software de
 - dirty selected worktrees rejected by default;
 - disabled hooks, signing, rerere, automatic maintenance, and garbage collection for synthetic
   merges;
-- process-tree termination before worktree removal;
+- process-group termination and verified supervisor closure before worktree removal;
 - conservative ownership/containment-verified cleanup without repository-wide pruning;
 - reports stored outside the scanned repository with local roots removed and no environment map
   serialized.
 
 Reports intentionally retain branch names, file names, command text, commit IDs, and bounded
-command output. Review them before sharing. See the [safety model](docs/SAFETY_MODEL.md).
+command output. Review them before sharing. Configured commands are trusted project programs and
+must not deliberately daemonize into another process group. See the
+[safety model](docs/SAFETY_MODEL.md).
 
 ## Codex skill usage
 
@@ -266,7 +269,8 @@ BranchMesh scans committed tips only, requires two to five selected branches, te
 combinations in one deterministic merge order, and observes only configured commands. It does not
 cache results, test reverse order or higher-order combinations, snapshot uncommitted content,
 integrate with GitHub, call an AI service, or apply fixes. `SIGKILL` and power loss cannot run
-in-process cleanup; `branchmesh clean` recovers only roots with complete ownership evidence.
+in-process cleanup; deliberately daemonized configured-command descendants can escape the managed
+process group; and `branchmesh clean` recovers only roots with complete ownership evidence.
 
 See [known limitations](docs/LIMITATIONS.md).
 
@@ -330,5 +334,6 @@ See [architecture](docs/ARCHITECTURE.md).
 
 ## License
 
-No open-source license has been selected. Until the repository owner adds one, no license is
-granted. License selection is an explicit manual submission gate.
+BranchMesh is available under the [MIT License](LICENSE).
+
+Copyright (c) 2026 Sufiyan Razaq.

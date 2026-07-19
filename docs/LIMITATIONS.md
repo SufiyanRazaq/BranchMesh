@@ -32,6 +32,8 @@ BranchMesh deliberately keeps the MVP narrow.
 - Setup executes independently in every job worktree and can dominate runtime.
 - Command pipelines stop at their first failure.
 - No result cache or automatic flaky-test rerun.
+- Configured commands are trusted. Descendants that deliberately create a new session or process
+  group can escape the managed POSIX process group and must not be used in validation commands.
 
 ## Platform and distribution scope
 
@@ -42,8 +44,8 @@ BranchMesh deliberately keeps the MVP narrow.
   does not copy the skill into another repository.
 - A real generated sample JSON/HTML report is tracked under `docs/samples`. Compiled `dist`, local
   package archives, raw demo logs, and screenshots are deliberately not tracked.
-- Public repository/video URLs, a selected license, actual host skill discovery, screenshots, and
-  manual browser/accessibility review remain human submission gates.
+- Public repository/video URLs, actual host skill discovery, screenshots, and manual
+  browser/accessibility review remain human submission gates.
 
 ## Product scope
 
@@ -60,3 +62,8 @@ cannot run in-process `finally` blocks. `branchmesh clean` conservatively recove
 roots with complete ownership, identity, inactivity, and Git-membership proof. Ambiguous partial
 roots, stale cleanup claims, and independently orphaned report stages are retained rather than
 deleted speculatively.
+
+The macOS release-candidate interruption/process-cleanup stress gate passed 20 consecutive fresh
+processes after regression-first process-group and worktree-registration corrections. Linux and
+WSL did not run that gate in this release session, so cross-platform interruption behavior remains
+a release risk rather than an executed compatibility claim.

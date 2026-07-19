@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { WorktreeManager } from "../../src/engine/WorktreeManager.js";
 import type { ExecutionOwnership } from "../../src/engine/ownership.js";
@@ -59,6 +59,86 @@ describe("WorktreeManager Git administration", () => {
 
       expect(maximumConcurrentWorktreeCommands).toBe(1);
       expect(new Set(registeredPathBasenames).size).toBe(2);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves a worktree whose process activity could not be proven stopped", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "branchmesh-worktree-manager-test-"));
+    const hooksDirectory = path.join(root, "hooks");
+    const worktreesDirectory = path.join(root, "worktrees");
+    const worktreePath = path.join(worktreesDirectory, "branch-0", "checkout-owned-branch-0");
+    await mkdir(hooksDirectory);
+    await mkdir(path.dirname(worktreePath), { recursive: true });
+    const record = {
+      jobId: "branch-0",
+      path: worktreePath,
+      state: "active" as const,
+      activity: "command" as const,
+    };
+    const run = vi.fn((args: readonly string[], options: { readonly cwd: string }) =>
+      Promise.resolve(successfulGitResult(args, options.cwd)),
+    );
+    const git: GitClient = { run };
+    const ownership = {
+      root,
+      hooksDirectory,
+      worktreesDirectory,
+      worktrees: [record],
+      findWorktree: () => record,
+      verify: () => Promise.resolve(),
+      updateWorktree: () => Promise.resolve(),
+      assertOwnedPath: () => Promise.resolve(),
+    } as unknown as ExecutionOwnership;
+    const manager = new WorktreeManager(
+      git,
+      { root, commonGitDirectory: path.join(root, "repository.git") },
+      ownership,
+    );
+
+    try {
+      await expect(manager.cleanup("branch-0")).rejects.toThrow(/process activity/u);
+      expect(run).not.toHaveBeenCalled();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not interrupt ownership-critical Git worktree registration", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "branchmesh-worktree-manager-test-"));
+    const hooksDirectory = path.join(root, "hooks");
+    const worktreesDirectory = path.join(root, "worktrees");
+    await mkdir(hooksDirectory);
+    await mkdir(worktreesDirectory);
+    const observedSignals: Array<AbortSignal | undefined> = [];
+    const git: GitClient = {
+      run: (
+        args: readonly string[],
+        options: { readonly cwd: string; readonly signal?: AbortSignal },
+      ) => {
+        observedSignals.push(options.signal);
+        return Promise.resolve(successfulGitResult(args, options.cwd));
+      },
+    };
+    const ownership = {
+      root,
+      hooksDirectory,
+      worktreesDirectory,
+      registerWorktree: () => Promise.resolve(),
+      updateWorktree: () => Promise.resolve(),
+    } as unknown as ExecutionOwnership;
+    const cancellation = new AbortController();
+    const manager = new WorktreeManager(
+      git,
+      { root, commonGitDirectory: path.join(root, "repository.git") },
+      ownership,
+      cancellation.signal,
+    );
+
+    try {
+      await manager.create("base", "a".repeat(40));
+      expect(observedSignals).toEqual([undefined]);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

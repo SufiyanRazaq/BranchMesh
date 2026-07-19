@@ -360,8 +360,7 @@ Automated acceptance evidence on 2026-07-17:
 
 Remaining human acceptance gates:
 
-- Select a license, confirm the `0.1.0` version choice, and make/test the repository available to
-  judges.
+- Make and test the repository as available to judges as required.
 - Confirm primary-session model metadata before naming GPT-5.6 and manually exercise actual Codex
   skill discovery.
 - Perform browser, keyboard, screen-reader, responsive, and print review.
@@ -372,5 +371,27 @@ Remaining human acceptance gates:
 
 Milestone boundary:
 
-- No screenshot, public URL, selected license, checked-in archive/prebuilt `dist`, release tag,
-  publication, push, or submission was created.
+- The approved MIT License and `0.1.0` package metadata are part of the release candidate. No
+  screenshot, public URL, checked-in archive/prebuilt `dist`, release tag, publication, push, or
+  submission was created.
+
+### 0.1.0 release-candidate follow-up — 2026-07-17
+
+Status: prepared for manual approval; nothing staged or committed by this follow-up.
+
+- Added the approved MIT License and matching package/lockfile metadata.
+- Reproduced the earlier macOS interruption failure, added focused regressions before each code
+  correction, retained uncertain owned roots instead of deleting them, and kept
+  ownership-critical worktree registration non-interruptible until Git completes.
+- A dedicated configured-command supervisor now remains the POSIX process-group leader through
+  final descendant termination. The final focused gate passed 20 fresh Vitest processes, covering
+  60/60 interruption, child/grandchild, cleanup, publication-failure, and original-state cases.
+- `npm run verify` passed 142 tests across 35 files, build, deterministic demo, offline-report
+  validation, and repository-skill verification on macOS.
+- `npm pack` produced the intended nine-file archive including `LICENSE`. A fresh temporary-prefix
+  install passed help, both version forms, invalid-input exit `2`, real-demo exit `1`, result-schema
+  validation, offline checks, and artifact privacy scanning.
+- The checked-in JSON and HTML were regenerated from the real production demo and contain no
+  personal path, environment map, token, secret, runtime request, or external asset.
+- Linux and WSL were not executed in this release session. They remain implementation-supported;
+  native Windows remains unsupported.

@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 
+import { ProcessTreeController } from "../utils/processTree.js";
+
 export interface GitCommandResult {
   readonly args: readonly string[];
   readonly cwd: string;
@@ -53,6 +55,7 @@ export class GitClient {
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    const processTree = new ProcessTreeController(child.pid);
 
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
@@ -62,6 +65,7 @@ export class GitClient {
     return await new Promise<GitCommandResult>((resolve, reject) => {
       let settled = false;
       let cancellationRequested = false;
+      let finalSignalAttempted = false;
       let abortTimer: ReturnType<typeof setTimeout> | undefined;
 
       const cleanup = (): void => {
@@ -85,15 +89,23 @@ export class GitClient {
           return;
         }
         cancellationRequested = true;
+        if (child.exitCode !== null || child.signalCode !== null) {
+          return;
+        }
         try {
-          terminateProcessTree(child.pid, "SIGTERM");
+          processTree.signal("SIGTERM");
         } catch (error: unknown) {
           settleReject(error instanceof Error ? error : new Error(String(error)));
           return;
         }
         abortTimer = setTimeout(() => {
           try {
-            terminateProcessTree(child.pid, "SIGKILL");
+            if (!finalSignalAttempted) {
+              if (child.exitCode === null && child.signalCode === null) {
+                processTree.signal("SIGKILL");
+                finalSignalAttempted = true;
+              }
+            }
           } catch (error: unknown) {
             settleReject(error instanceof Error ? error : new Error(String(error)));
           }
@@ -115,14 +127,6 @@ export class GitClient {
         }
 
         if (cancellationRequested) {
-          try {
-            // The Git process has closed. Kill any remaining members of its detached process
-            // group before allowing worktree cleanup to continue.
-            terminateProcessTree(child.pid, "SIGKILL");
-          } catch (error: unknown) {
-            settleReject(error instanceof Error ? error : new Error(String(error)));
-            return;
-          }
           settleReject(createAbortError());
           return;
         }
@@ -149,28 +153,6 @@ function gitEnvironment(overrides: NodeJS.ProcessEnv | undefined): NodeJS.Proces
     delete environment[variable];
   }
   return { ...environment, ...overrides };
-}
-
-function terminateProcessTree(processId: number | undefined, signal: NodeJS.Signals): void {
-  if (processId === undefined) {
-    return;
-  }
-
-  try {
-    if (process.platform === "win32") {
-      process.kill(processId, signal);
-    } else {
-      process.kill(-processId, signal);
-    }
-  } catch (error: unknown) {
-    if (!isNoSuchProcessError(error)) {
-      throw error;
-    }
-  }
-}
-
-function isNoSuchProcessError(error: unknown): boolean {
-  return error instanceof Error && "code" in error && error.code === "ESRCH";
 }
 
 export function assertGitSuccess(result: GitCommandResult, operation: string): GitCommandResult {

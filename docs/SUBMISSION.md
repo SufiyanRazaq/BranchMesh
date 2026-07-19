@@ -137,7 +137,6 @@ authorization, and control over any push, tag, publication, or submission.
 - actual Codex host discovery of the repository skill;
 - manual browser, keyboard, screen-reader, and print review;
 - Linux and WSL release-matrix execution;
-- selected license;
 - captured screenshots and uploaded video;
 - public video URL, repository URL, and primary `/feedback` session ID;
 - all Devpost links working while logged out.
